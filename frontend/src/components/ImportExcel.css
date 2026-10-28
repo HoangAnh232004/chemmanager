@@ -1,0 +1,156 @@
+/* Trang Nhập Excel: 2 thẻ trải full chiều rộng + khung hướng dẫn bên dưới,
+   ô chọn file dạng dropzone tiếng Việt (không còn nút Choose file tiếng Anh của trình duyệt) */
+.import-page {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.import-title {
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: #101828;
+  margin: 0 0 4px;
+}
+
+.import-subtitle {
+  margin: 0;
+  font-size: 14px;
+  color: #667085;
+}
+
+.import-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  align-items: stretch;
+}
+
+@media (max-width: 900px) {
+  .import-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.import-card {
+  background: #fff;
+  border: 1px solid #eaecf0;
+  border-top: 3px solid #0d9488;
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 0 1px 2px rgba(16, 24, 40, 0.05), 0 4px 12px rgba(16, 24, 40, 0.06);
+  display: flex;
+  flex-direction: column;
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+
+.import-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(16, 24, 40, 0.08), 0 12px 28px rgba(16, 24, 40, 0.1);
+}
+
+.import-card h3 {
+  margin: 0 0 16px;
+  font-size: 18px;
+  color: #0f766e;
+}
+
+.import-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  flex: 1;
+}
+
+/* Ô chọn file dạng dropzone: bấm vào cả khung là chọn file, chữ tiếng Việt */
+.import-dropzone {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 24px 16px;
+  border: 1.5px dashed #d0d5dd;
+  border-radius: 12px;
+  background: #f9fafb;
+  cursor: pointer;
+  text-align: center;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.import-dropzone:hover {
+  border-color: #99f6e4;
+  background: #f0fdfa;
+}
+
+.import-file-input {
+  position: absolute;
+  left: 12px;
+  top: 12px;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  border: none;
+  opacity: 0;
+  overflow: hidden;
+}
+
+.import-dropzone-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: #f0fdfa;
+  color: #0d9488;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+.import-dropzone-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #0f766e;
+}
+
+.import-dropzone-hint {
+  font-size: 13px;
+  color: #98a2b3;
+}
+
+.import-filename {
+  font-size: 13px;
+  font-weight: 600;
+  color: #0f766e;
+  word-break: break-all;
+}
+
+.btn-submit {
+  width: 100%;
+  margin-top: auto;
+  padding: 12px;
+  font-size: 15px;
+}
+
+.import-message {
+  margin: 14px 0 0;
+  padding: 10px 12px;
+  border-radius: 10px;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.import-message.success {
+  background: #ecfdf5;
+  color: #065f46;
+  border: 1px solid #a7f3d0;
+}
+
+.import-message.error {
+  background: #fef2f2;
+  color: #b91c1c;
+  border: 1px solid #fecaca;
+}

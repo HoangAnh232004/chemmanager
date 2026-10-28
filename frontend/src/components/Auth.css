@@ -1,0 +1,385 @@
+/* Trang đăng nhập/đăng ký full màn hình: thẻ chia đôi tràn hết viewport,
+   trái là panel thương hiệu, phải là form (nội dung form giới hạn 440px, căn giữa).
+   Màn hình hẹp thì ẩn panel trái, chỉ hiện form. */
+
+.auth-wrap {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  background: #fff;
+  overflow-y: auto;
+}
+
+.auth-card {
+  margin: 0;
+  width: 100%;
+  max-width: none;
+  min-height: 100%;
+  display: flex;
+  background: #fff;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  overflow: hidden;
+  animation: authFadeUp 0.5s ease both;
+}
+
+@keyframes authFadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* Panel thương hiệu bên trái */
+.auth-brand {
+  flex: 4;
+  min-width: 0;
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(160deg, #14b8a6, #0d9488 55%, #0f766e);
+  color: #fff;
+  padding: 48px 56px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 16px;
+}
+
+/* Họa tiết trang trí lấp khoảng trống trên panel trái */
+.auth-deco {
+  position: absolute;
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+.auth-deco-1 {
+  width: 320px;
+  height: 320px;
+  right: -120px;
+  top: -100px;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.auth-deco-2 {
+  width: 220px;
+  height: 220px;
+  left: -80px;
+  bottom: -60px;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.auth-deco-3 {
+  width: 140px;
+  height: 140px;
+  right: 60px;
+  bottom: 110px;
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+}
+
+.auth-brand > *:not(.auth-deco) {
+  position: relative;
+  z-index: 1;
+}
+
+.auth-logo {
+  width: 64px;
+  height: 64px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.18);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.auth-brand h1 {
+  margin: 0;
+  font-size: 32px;
+  letter-spacing: -0.02em;
+}
+
+.auth-brand-tag {
+  margin: 0;
+  opacity: 0.9;
+  font-size: 16px;
+  line-height: 1.7;
+}
+
+.auth-features {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-top: 8px;
+}
+
+.auth-feature {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  font-size: 15px;
+  opacity: 0.92;
+  line-height: 1.5;
+}
+
+.auth-feature svg {
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.auth-brand-note {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  margin-top: 16px;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 14px;
+  padding: 14px 16px;
+  font-size: 14px;
+  line-height: 1.6;
+  opacity: 0.95;
+}
+
+.auth-brand-note svg {
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+/* Form bên phải */
+.auth-form {
+  flex: 5;
+  min-width: 0;
+  position: relative;
+  padding: 36px 32px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 20px;
+  background: linear-gradient(180deg, #ffffff 0%, #f6f8fa 100%);
+}
+
+/* Nội dung form không giãn hết panel mà giới hạn 460px, căn giữa */
+.auth-form > * {
+  width: 100%;
+  max-width: 460px;
+}
+
+.auth-form > .auth-foot {
+  max-width: none;
+}
+
+.auth-form-title {
+  margin: 0;
+  font-size: 26px;
+  color: #0f172a;
+}
+
+.auth-form-sub {
+  margin: 0;
+  font-size: 15px;
+  color: #64748b;
+}
+
+.auth-tabs {
+  display: flex;
+  background: #f0fdfa;
+  border-radius: 12px;
+  padding: 4px;
+  gap: 4px;
+}
+
+.auth-tab {
+  flex: 1;
+  padding: 8px;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  background: transparent;
+  color: #475569;
+}
+
+.auth-tab:hover {
+  background: #ccfbf1;
+  color: #0f766e;
+}
+
+.auth-tab.active {
+  background: #0d9488;
+  color: #fff;
+}
+
+.auth-tab.active:hover {
+  background: #0f766e;
+}
+
+.auth-form-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.auth-label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: #334155;
+  margin-bottom: 6px;
+}
+
+.auth-field {
+  position: relative;
+}
+
+.auth-field > svg {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #94a3b8;
+  pointer-events: none;
+}
+
+.auth-input {
+  width: 100%;
+  box-sizing: border-box;
+  padding-left: 38px;
+  padding-top: 12px;
+  padding-bottom: 12px;
+  border-radius: 10px;
+}
+
+.auth-eye {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: #94a3b8;
+  padding: 4px;
+  display: flex;
+  cursor: pointer;
+  box-shadow: none;
+}
+
+.auth-eye:hover {
+  background: none;
+  color: #0d9488;
+}
+
+.auth-submit {
+  width: 100%;
+  padding: 14px;
+  font-size: 15px;
+  font-weight: 700;
+  border-radius: 10px;
+}
+
+.auth-remember {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: #475569;
+  cursor: pointer;
+}
+
+.auth-remember input {
+  width: 16px;
+  height: 16px;
+  accent-color: #0d9488;
+  cursor: pointer;
+}
+
+.auth-submit-secondary {
+  background: #fff;
+  color: #0d9488;
+  border: 1px solid #99f6e4;
+}
+
+.auth-submit-secondary:hover {
+  background: #f0fdfa;
+}
+
+.auth-msg {
+  margin: 0;
+  padding: 12px;
+  border-radius: 10px;
+  font-size: 14px;
+  text-align: center;
+}
+
+.auth-msg.success {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.auth-msg.error {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.auth-note {
+  margin: 0;
+  font-size: 13px;
+  color: #64748b;
+  text-align: center;
+}
+
+.auth-verify-info {
+  margin: 0;
+  font-size: 14px;
+  color: #334155;
+  text-align: center;
+}
+
+.auth-center {
+  text-align: center;
+}
+
+.auth-foot {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 24px;
+  margin: 0;
+  text-align: center;
+  font-size: 13px;
+  color: #94a3b8;
+}
+
+.auth-link {
+  background: none;
+  border: none;
+  padding: 0;
+  color: #0d9488;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.auth-link:hover {
+  text-decoration: underline;
+}
+
+/* Màn hình hẹp: ẩn panel thương hiệu, chỉ hiện form */
+@media (max-width: 768px) {
+  .auth-brand {
+    display: none;
+  }
+  .auth-card {
+    max-width: none;
+  }
+  .auth-form {
+    padding: 28px 24px;
+  }
+}

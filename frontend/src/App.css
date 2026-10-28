@@ -1,0 +1,124 @@
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: #eef2f7;
+  color: #1e293b;
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+}
+
+.container {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 24px;
+}
+
+.header {
+  background: linear-gradient(135deg, #0f766e, #2563eb);
+  color: #fff;
+  border-radius: 16px;
+  padding: 28px 32px;
+  margin-bottom: 24px;
+  box-shadow: 0 8px 24px rgba(37, 99, 235, 0.25);
+}
+
+.header h1 { margin: 0 0 6px; font-size: 28px; }
+.header p { margin: 0; opacity: 0.85; font-size: 14px; }
+
+.tabs { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 20px; }
+
+.tab-btn {
+  padding: 10px 18px;
+  border-radius: 999px;
+  border: 1px solid #dbe3ec;
+  background: #fff;
+  color: #334155;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.tab-btn:hover { border-color: #2563eb; color: #2563eb; }
+
+.tab-btn.active {
+  background: #2563eb;
+  border-color: #2563eb;
+  color: #fff;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.35);
+}
+
+.card {
+  background: #fff;
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 0 2px 12px rgba(15, 23, 42, 0.06);
+}
+
+.card h2 { margin-top: 0; font-size: 19px; color: #0f172a; }
+.card h3 { color: #0f172a; }
+.card h4 { color: #0f766e; margin-bottom: 6px; }
+
+input, select {
+  padding: 9px 12px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  font-size: 14px;
+  background: #fff;
+  color: #1e293b;
+}
+
+input:focus, select:focus {
+  outline: none;
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+}
+
+button {
+  padding: 9px 18px;
+  border: none;
+  border-radius: 8px;
+  background: #2563eb;
+  color: #fff;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+button:hover { background: #1d4ed8; }
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  border: none;
+  font-size: 14px;
+}
+
+th, td {
+  border: none;
+  border-bottom: 1px solid #e2e8f0;
+  padding: 11px 12px;
+  text-align: left;
+}
+
+th {
+  background: #f8fafc;
+  color: #475569;
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+tbody tr:hover { background: #f8fafc; }
+
+table button {
+  padding: 6px 12px;
+  font-size: 13px;
+  background: #f1f5f9;
+  color: #334155;
+}
+
+table button:hover { background: #e2e8f0; }
+
+ul { line-height: 1.7; }

@@ -1,0 +1,110 @@
+/* Ô chọn có tìm kiếm trong form nhập lot (SearchSelect) */
+.ss-wrap {
+  position: relative;
+  flex: 1 1 220px;
+  min-width: 200px;
+}
+
+.ss-control {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 9px 12px;
+  border: 1px solid #d0d5dd;
+  border-radius: 10px;
+  background: #fff;
+  cursor: pointer;
+  font-size: 14px;
+  min-height: 20px;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.ss-control:focus {
+  outline: none;
+  border-color: #0d9488;
+  box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.15);
+}
+
+.ss-value {
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ss-placeholder {
+  flex: 1;
+  color: #98a2b3;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ss-clear {
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  color: #999;
+  font-size: 18px;
+  line-height: 1;
+  padding: 0 2px;
+}
+
+.ss-clear:hover {
+  color: #333;
+}
+
+.ss-arrow {
+  color: #666;
+  font-size: 12px;
+}
+
+.ss-list {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(100% + 4px);
+  background: #fff;
+  border: 1px solid #d0d5dd;
+  border-radius: 12px;
+  box-shadow: 0 12px 32px rgba(16, 24, 40, 0.14);
+  z-index: 20;
+  overflow: hidden;
+}
+
+.ss-search {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 8px 10px;
+  border: none;
+  border-bottom: 1px solid #eee;
+  outline: none;
+  font-size: 14px;
+}
+
+.ss-options {
+  max-height: 240px;
+  overflow-y: auto;
+}
+
+.ss-option {
+  padding: 8px 10px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.ss-option:hover {
+  background: #f0fdfa;
+}
+
+.ss-option.selected {
+  background: #ccfbf1;
+  color: #0f766e;
+  font-weight: 600;
+}
+
+.ss-empty {
+  padding: 8px 10px;
+  color: #888;
+  font-size: 14px;
+}
