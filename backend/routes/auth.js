@@ -1,38 +1,61 @@
 const express = require('express');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const nodemailer = require('nodemailer');
+const https = require('https');
 const { pool } = require('../db');
 const { verifyToken, requireAdmin } = require('../middleware/auth');
 const router = express.Router();
 
-// Gửi mail qua Gmail (cần EMAIL_USER + EMAIL_PASS trong file .env,
-// EMAIL_PASS là mật khẩu ứng dụng 16 ký tự, không phải mật khẩu Gmail)
-// Dùng cổng 587 tường minh thay cho service 'gmail' (cổng 465) vì từ Render
-// kết nối cổng 465 hay bị Connection timeout; 587 dùng STARTTLS nên qua được.
-const transporter = nodemailer.createTransport({
-  host: 'smtp.gmail.com',
-  port: 587,
-  secure: false,
-  requireTLS: true,
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS,
-  },
-});
+// Gửi mail qua API của Brevo (HTTPS, cổng 443) thay cho SMTP Gmail,
+// vì Render chặn đường SMTP ra ngoài (cổng 465 và 587 đều Connection timeout).
+// Cần 2 biến môi trường:
+//   - BREVO_API_KEY: key API đã tạo trên Brevo (quyền Transactional email = All)
+//   - EMAIL_USER: địa chỉ Gmail đã xác thực làm sender trên Brevo
+// EMAIL_PASS không còn dùng nữa.
+// Dùng module https có sẵn của Node nên không cần cài thêm gói nào.
+// Timeout 15 giây: nếu Brevo không trả lời thì báo lỗi nhanh chứ không treo request.
+function sendVerificationCode(email, code) {
+  return new Promise((resolve, reject) => {
+    if (!process.env.BREVO_API_KEY) return reject(new Error('Chưa cấu hình BREVO_API_KEY'));
+    if (!process.env.EMAIL_USER) return reject(new Error('Chưa cấu hình EMAIL_USER làm địa chỉ gửi'));
+    const body = JSON.stringify({
+      sender: { name: 'ChemManager', email: process.env.EMAIL_USER },
+      to: [{ email }],
+      subject: 'Mã xác thực tài khoản - Quản lý hóa chất',
+      textContent: `Mã xác thực tài khoản của bạn là: ${code}\nMã có hiệu lực trong 15 phút. Nếu bạn không đăng ký tài khoản này, hãy bỏ qua email này.`,
+    });
+    const req = https.request(
+      {
+        hostname: 'api.brevo.com',
+        path: '/v3/smtp/email',
+        method: 'POST',
+        timeout: 15000,
+        headers: {
+          accept: 'application/json',
+          'api-key': process.env.BREVO_API_KEY,
+          'content-type': 'application/json',
+          'content-length': Buffer.byteLength(body),
+        },
+      },
+      (res) => {
+        let data = '';
+        res.on('data', (chunk) => (data += chunk));
+        res.on('end', () => {
+          if (res.statusCode >= 200 && res.statusCode < 300) return resolve();
+          reject(new Error(`Brevo trả về ${res.statusCode}: ${data}`));
+        });
+      }
+    );
+    req.on('timeout', () => req.destroy(new Error('Gọi API Brevo quá 15 giây chưa trả lời')));
+    req.on('error', reject);
+    req.write(body);
+    req.end();
+  });
+}
 
 // Tạo mã xác thực 6 số
 function makeCode() {
   return String(Math.floor(100000 + Math.random() * 900000));
-}
-
-async function sendVerificationCode(email, code) {
-  await transporter.sendMail({
-    from: process.env.EMAIL_USER,
-    to: email,
-    subject: 'Mã xác thực tài khoản - Quản lý hóa chất',
-    text: `Mã xác thực tài khoản của bạn là: ${code}\nMã có hiệu lực trong 15 phút. Nếu bạn không đăng ký tài khoản này, hãy bỏ qua email này.`,
-  });
 }
 
 // Đăng ký: tài khoản đầu tiên làm admin + kích hoạt luôn, các tài khoản sau chờ duyệt
