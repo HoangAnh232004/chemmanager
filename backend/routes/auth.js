@@ -8,8 +8,13 @@ const router = express.Router();
 
 // Gửi mail qua Gmail (cần EMAIL_USER + EMAIL_PASS trong file .env,
 // EMAIL_PASS là mật khẩu ứng dụng 16 ký tự, không phải mật khẩu Gmail)
+// Dùng cổng 587 tường minh thay cho service 'gmail' (cổng 465) vì từ Render
+// kết nối cổng 465 hay bị Connection timeout; 587 dùng STARTTLS nên qua được.
 const transporter = nodemailer.createTransport({
-  service: 'gmail',
+  host: 'smtp.gmail.com',
+  port: 587,
+  secure: false,
+  requireTLS: true,
   auth: {
     user: process.env.EMAIL_USER,
     pass: process.env.EMAIL_PASS,
