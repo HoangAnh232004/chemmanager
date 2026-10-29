@@ -5,8 +5,9 @@ import './Notifications.css';
 
 // Chuông thông báo ở header: báo hết hàng / cần đặt hàng (theo đúng luật
 // cột Trạng thái ở tab Kho) và tài khoản chờ duyệt (chỉ admin thấy).
-// Huy hiệu = số thông báo mới xuất hiện từ lần mở bảng gần nhất; mở bảng
-// ra là đánh dấu tất cả hiện tại là đã đọc. Chuông vẽ bằng SVG cho nét,
+// Huy hiệu = số thông báo chưa xem chi tiết; chỉ khi bấm vào 1 thông báo để
+// xem bảng nổi chi tiết thì thông báo đó mới tính là đã đọc (mở bảng ra xem
+// lướt thì huy hiệu không trừ). Chuông vẽ bằng SVG cho nét,
 // khớp tông xanh ngọc của web (không dùng emoji).
 // Bấm vào 1 thông báo mở bảng nổi chi tiết đúng thứ đang được báo.
 
@@ -93,12 +94,21 @@ export default function Notifications({ user, signal, goTab }) {
 
   const toggleOpen = () => {
     if (!open) {
-      const ids = items.map((it) => it.id);
-      setSeen(ids);
-      localStorage.setItem(SEEN_KEY, JSON.stringify(ids));
       load();
     }
     setOpen(!open);
+  };
+
+  // Chỉ khi bấm vào 1 thông báo để xem bảng nổi chi tiết thì thông báo đó
+  // mới tính là đã đọc và huy hiệu mới trừ đi 1 (mở bảng ra xem lướt không trừ)
+  const openDetail = (it) => {
+    setOpen(false);
+    if (!seenSet.has(it.id)) {
+      const next = [...seen, it.id];
+      setSeen(next);
+      localStorage.setItem(SEEN_KEY, JSON.stringify(next));
+    }
+    setDetail(it.popup);
   };
 
   const dotClass = (kind) => kind === 'Hết hàng' ? 'out' : kind === 'Đặt hàng' ? 'order' : 'pending';
@@ -129,7 +139,7 @@ export default function Notifications({ user, signal, goTab }) {
                   <button
                     key={it.id}
                     className={seenSet.has(it.id) ? 'notif-item' : 'notif-item unread'}
-                    onClick={() => { setOpen(false); setDetail(it.popup); }}
+                    onClick={() => openDetail(it)}
                   >
                     <span className={`notif-dot ${dotClass(it.kind)}`} />
                     <span>
