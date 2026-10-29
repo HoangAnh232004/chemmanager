@@ -7,7 +7,7 @@ import './NotificationDetail.css';
 //   số lượng đặt hàng, tên Hàn, quy cách) + nút sang tab Kho.
 // - Tài khoản chờ duyệt → thông tin tài khoản + duyệt / từ chối ngay tại chỗ.
 
-export default function NotificationDetail({ detail, onClose, onGoTab, onReload }) {
+export default function NotificationDetail({ detail, onClose, onGoKho, onReload }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
 
@@ -71,7 +71,7 @@ export default function NotificationDetail({ detail, onClose, onGoTab, onReload 
         <div className="nd-row"><span>Số lượng đặt hàng</span><b>{orderSuggest !== null ? `${orderSuggest} kg` : '—'}</b></div>
         <div className="nd-actions">
           <button className="nd-btn-neutral" onClick={onClose}>Đóng</button>
-          <button className="nd-btn-primary" onClick={() => { onClose(); onGoTab('inventory'); }}>Xem ở tab Kho</button>
+          <button className="nd-btn-primary" onClick={() => { onClose(); onGoKho(detail.name); }}>Xem ở tab Kho</button>
         </div>
       </div>
     </div>

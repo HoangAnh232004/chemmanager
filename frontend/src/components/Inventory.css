@@ -21,3 +21,12 @@
   color: #0f766e;
   font-weight: 600;
 }
+
+/* Nháy vàng nhẹ 1 lần khi nhảy tới từ bảng nổi thông báo */
+tr.inv-flash td {
+  animation: invFlash 1.6s ease-out 1;
+}
+@keyframes invFlash {
+  0% { background-color: #fef9c3; }
+  100% { background-color: transparent; }
+}

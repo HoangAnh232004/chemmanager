@@ -47,6 +47,9 @@ useEffect(() => {
     return null;
   });
   const [signal, setSignal] = useState(0);
+  // Hóa chất cần nhảy tới ở tab Kho khi bấm "Xem ở tab Kho" trong bảng nổi thông báo
+  const [khoHighlight, setKhoHighlight] = useState(null);
+  const goKho = (name) => { setKhoHighlight(name); setTab('inventory'); };
   const [menuOpen, setMenuOpen] = useState(false);
   const [accountOpen, setAccountOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -131,7 +134,7 @@ useEffect(() => {
           )}
         </div>
         <div className="header-right">
-          <Notifications user={user} signal={signal} goTab={setTab} />
+          <Notifications user={user} signal={signal} goKho={goKho} />
           <div className="account-wrap">
           <button className="account-btn" onClick={() => setAccountOpen((v) => !v)} title="Tài khoản">
             <span className="account-avatar">{user.username?.[0]?.toUpperCase()}</span>
@@ -201,7 +204,7 @@ useEffect(() => {
         {tab === 'chemicals' && <Chemicals signal={signal} user={user} />}
         {tab === 'suppliers' && <Suppliers signal={signal} user={user} />}
         {tab === 'lots' && <Lots signal={signal} />}
-        {tab === 'inventory' && <Inventory signal={signal} user={user} />}
+        {tab === 'inventory' && <Inventory signal={signal} user={user} highlightChemical={khoHighlight} onHighlightDone={() => setKhoHighlight(null)} />}
         {tab === 'archive' && <Archive signal={signal} />}
         {tab === 'export' && <Export signal={signal} />}
         {tab === 'import' && <ImportExcel />}

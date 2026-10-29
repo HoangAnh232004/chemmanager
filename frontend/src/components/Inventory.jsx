@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import api from '../api';
 import Pagination from './Pagination';
 import ConfirmModal from './ConfirmModal';
@@ -20,7 +20,7 @@ function withStatus(r) {
   return { ...r, minStock, maxStock: orderQty, closing, status, statusClass };
 }
 
-export default function Inventory({ signal, user }) {
+export default function Inventory({ signal, user, highlightChemical, onHighlightDone }) {
   const [period, setPeriod] = useState('');
   const [periodLabel, setPeriodLabel] = useState('');
   const [rows, setRows] = useState([]);
@@ -29,6 +29,9 @@ export default function Inventory({ signal, user }) {
   const [confirm, setConfirm] = useState(null);
   const [exporting, setExporting] = useState(false);
   const [now, setNow] = useState(new Date());
+  const [loaded, setLoaded] = useState(false);
+  const [flashName, setFlashName] = useState(null);
+  const rowRefs = useRef({});
 
   // Đồng hồ ngày: cập nhật mỗi giây
   useEffect(() => {
@@ -43,6 +46,7 @@ export default function Inventory({ signal, user }) {
     } catch (err) {
       console.error(err);
     }
+    setLoaded(true);
   };
 
   useEffect(() => {
@@ -60,6 +64,29 @@ export default function Inventory({ signal, user }) {
   const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
   const safePage = Math.min(page, totalPages);
   const pageItems = filtered.slice((safePage - 1) * pageSize, safePage * pageSize);
+
+  // Nhảy tới đúng hóa chất từ bảng nổi thông báo: bỏ lọc tìm kiếm, nhảy tới
+  // đúng trang chứa nó rồi nháy vàng 1 lần; không thấy thì dọn highlight luôn
+  useEffect(() => {
+    if (!highlightChemical || !loaded) return;
+    const target = enriched.find((r) => r.chemical_name === highlightChemical)
+      || enriched.find((r) => normalize(r.chemical_name) === normalize(highlightChemical));
+    if (!target) { onHighlightDone?.(); return; }
+    const idx = enriched.indexOf(target);
+    setSearch('');
+    setPage(Math.floor(idx / pageSize) + 1);
+    setFlashName(target.chemical_name);
+  }, [highlightChemical, loaded]);
+
+  // Cuộn tới dòng đang nháy (sau khi đã nhảy đúng trang)
+  useEffect(() => {
+    if (!flashName) return;
+    const el = rowRefs.current[flashName];
+    if (!el) { setFlashName(null); onHighlightDone?.(); return; }
+    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }, [flashName, safePage]);
+
+  const handleFlashEnd = () => { setFlashName(null); onHighlightDone?.(); };
 
   const deleteAll = async () => {
     try {
@@ -139,7 +166,11 @@ export default function Inventory({ signal, user }) {
         <thead><tr><th>STT</th><th>Tên hóa chất</th><th>Tên Hàn</th><th>NCC</th><th>Hạn dùng</th><th>Quy cách</th><th>Tồn đầu kỳ</th><th>Tối thiểu</th><th>Tối đa</th><th>Nhập</th><th>Xuất</th><th>Tồn</th><th>Trạng thái</th><th>Ghi chú</th></tr></thead>
         <tbody>
           {pageItems.map((r, idx) => (
-            <tr key={r.chemical_name}>
+            <tr key={r.chemical_name}
+              ref={(el) => { if (el) rowRefs.current[r.chemical_name] = el; }}
+              className={flashName === r.chemical_name ? 'inv-flash' : undefined}
+              onAnimationEnd={flashName === r.chemical_name ? handleFlashEnd : undefined}
+            >
               <td>{(safePage - 1) * pageSize + idx + 1}</td><td>{r.chemical_name}</td><td>{r.korean_name || '—'}</td><td>{r.supplier_name || '—'}</td>
               <td>{r.expiry ? r.expiry.slice(0, 10) : '—'}</td><td>{r.packaging || '—'}</td><td>{r.opening_stock}</td><td>{r.minStock ? r.minStock : '—'}</td><td>{r.maxStock ? r.maxStock : '—'}</td>
               <td>{r.stock_in}</td><td>{r.stock_out}</td><td>{r.closing}</td><td className={r.statusClass}>{r.status}</td>

@@ -21,7 +21,7 @@ function loadSeen() {
   }
 }
 
-export default function Notifications({ user, signal, goTab }) {
+export default function Notifications({ user, signal, goKho }) {
   const [open, setOpen] = useState(false);
   const [items, setItems] = useState([]);
   const [detail, setDetail] = useState(null);
@@ -157,7 +157,7 @@ export default function Notifications({ user, signal, goTab }) {
         <NotificationDetail
           detail={detail}
           onClose={() => setDetail(null)}
-          onGoTab={(t) => { setDetail(null); goTab(t); }}
+          onGoKho={(name) => { setDetail(null); goKho(name); }}
           onReload={load}
         />
       )}
