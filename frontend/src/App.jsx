@@ -183,20 +183,7 @@ useEffect(() => {
           </Fragment>
         ))}
       </div>
-      {/* Thanh ngang chuyển tab nhanh (dùng song song với menu dọc, cùng danh sách tab) */}
-      <div className="topbar">
-        {tabs.map(([key, label]) => (
-          <Fragment key={key}>
-            {key === 'import' && <span className="topbar-divider" title="Quản trị" />}
-            <button
-              className={tab === key ? 'topbar-item active' : 'topbar-item'}
-              onClick={() => { setTab(key); setMenuOpen(false); }}
-            >
-              {label}
-            </button>
-          </Fragment>
-        ))}
-      </div>
+     
       <div className="card">
         {tab === 'home' && <Home signal={signal} user={user} goTab={setTab} />}
         {tab === 'chemicals' && <Chemicals signal={signal} user={user} />}
