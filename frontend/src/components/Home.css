@@ -7,59 +7,6 @@
   gap: 18px;
 }
 
-/* Ô tìm kiếm duy nhất ở đầu trang */
-.hm-search {
-  position: relative;
-}
-.hm-search input {
-  width: 100%;
-  box-sizing: border-box;
-  padding: 14px 18px;
-  font-size: 16px;
-  font-family: inherit;
-  color: #0b2530;
-  background: #fff;
-  border: 2px solid #0d9488;
-  border-radius: 14px;
-  outline: none;
-}
-.hm-search input:focus {
-  border-color: #0f766e;
-  box-shadow: 0 0 0 3px #ccfbf1;
-}
-.hm-results {
-  position: absolute;
-  top: 100%;
-  left: 0;
-  right: 0;
-  z-index: 5;
-  margin-top: 6px;
-  background: #fff;
-  border: 1px solid #cfe8df;
-  border-radius: 12px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
-  overflow: hidden;
-}
-.hm-result {
-  display: flex;
-  justify-content: space-between;
-  padding: 11px 16px;
-  font-size: 15px;
-  color: #0b2530;
-  cursor: pointer;
-  border-bottom: 1px solid #f2f4f7;
-}
-.hm-result:last-child {
-  border-bottom: none;
-}
-.hm-result:hover {
-  background: #f0fdfa;
-}
-.hm-result-stock {
-  color: #3f5a66;
-  font-size: 14px;
-}
-
 /* 4 thẻ số liệu nhanh */
 .hm-kpis {
   display: grid;
@@ -71,17 +18,11 @@
   border: 1px solid #cfe8df;
   border-radius: 14px;
   padding: 16px;
-  cursor: pointer;
-  font-family: inherit;
   color: #0b2530;
   display: flex;
   flex-direction: column;
   gap: 4px;
   text-align: left;
-}
-.hm-kpi:hover {
-  border-color: #14b8a6;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
 }
 .hm-kpi b {
   font-size: 26px;
@@ -155,93 +96,12 @@
   border: 2px solid #fff;
 }
 
-/* 2 bảng chạy nhập/xuất trong ngày */
-.hm-today {
-  display: flex;
-  gap: 14px;
-}
-.hm-ticker-wrap {
-  flex: 1;
-  background: #fff;
-  border: 1px solid #cfe8df;
-  border-radius: 14px;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-}
-.hm-ticker-head {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 12px 16px 6px;
-  font-size: 12px;
-  color: #3f5a66;
-}
-.hm-ticker-head b {
-  font-size: 13px;
-}
-.hm-ticker-head span {
-  font-weight: 700;
-  color: #0b2530;
-}
-.hm-ticker-wrap.in .hm-ticker-head b {
-  color: #0d9488;
-}
-.hm-ticker-wrap.out .hm-ticker-head b {
-  color: #c2410c;
-}
-.hm-ticker {
-  height: 78px;
-  overflow: hidden;
-}
-.hm-ticker-track {
-  animation-name: hm-tick;
-  animation-timing-function: linear;
-  animation-iteration-count: infinite;
-}
-.hm-ticker:hover .hm-ticker-track {
-  animation-play-state: paused;
-}
-.hm-trow {
-  height: 26px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 0 16px;
-  font-size: 14px;
-  color: #0b2530;
-  border-top: 1px solid #f2f4f7;
-}
-.hm-trow-name {
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.hm-trow-qty {
-  font-weight: 800;
-  white-space: nowrap;
-  margin-left: 8px;
-}
-.hm-ticker-empty {
-  padding: 12px 16px;
-  font-size: 14px;
-  color: #3f5a66;
-}
-@keyframes hm-tick {
-  from { transform: translateY(0); }
-  to { transform: translateY(-50%); }
-}
-
 @media (max-width: 768px) {
   .hm-kpis {
     grid-template-columns: 1fr 1fr;
   }
   .hm-tiles {
     grid-template-columns: 1fr 1fr;
-  }
-  .hm-today {
-    flex-direction: column;
   }
 }
 

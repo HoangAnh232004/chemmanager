@@ -4,7 +4,6 @@ import './theme.css';
 import Chemicals from './components/Chemicals';
 import Suppliers from './components/Suppliers';
 import Lots from './components/Lots';
-import Qc from './components/Qc';
 import Inventory from './components/Inventory';
 import Archive from './components/Archive';
 import Export from './components/Export';
@@ -24,7 +23,7 @@ import socket from './socket';
 export default function App() {
   const [tab, setTab] = useState(() => {
     // Tab cũ 'trace' đã đổi thành 'export': nếu trình duyệt còn nhớ tab cũ thì về trang chủ cho khỏi trắng trang
-    const valid = ['home', 'chemicals', 'suppliers', 'lots', 'qc', 'inventory', 'archive', 'export', 'import', 'approvals', 'audit'];
+    const valid = ['home', 'chemicals', 'suppliers', 'lots', 'inventory', 'archive', 'export', 'import', 'approvals', 'audit'];
     // Phân biệt F5 với đóng tab rồi mở lại: sessionStorage còn khi F5, mất khi đóng tab mở tab mới
     const isReload = sessionStorage.getItem('tabAlive') === '1';
     sessionStorage.setItem('tabAlive', '1');
@@ -101,7 +100,6 @@ useEffect(() => {
     ['chemicals', 'Hóa chất'],
     ['suppliers', 'Nhà cung cấp'],
     ['lots', 'Mua/nhập'],
-    ['qc', 'QC/release'],
     ['inventory', 'Kho'],
     ['archive', 'Lưu trữ'],
     ['export', 'Xuất kho'],
@@ -109,6 +107,14 @@ useEffect(() => {
   if (user.role === 'admin') tabs.push(['import', 'Nhập Excel']);
   if (user.role === 'admin') tabs.push(['approvals', 'Duyệt tài khoản']);
   if (user.role === 'admin') tabs.push(['audit', 'Lịch sử hoạt động']);
+
+  // Menu dọc phân nhóm y như các ô ở trang chủ
+  const sidebarGroups = [
+    { title: null, keys: ['home'] },
+    { title: 'Vận hành kho hằng ngày', keys: ['lots', 'export', 'inventory'] },
+    { title: 'Danh mục & nhập liệu', keys: ['chemicals', 'suppliers', 'import'] },
+    { title: 'Theo dõi & quản trị', keys: ['archive', 'audit', 'approvals'] },
+  ];
 
 
   return (
@@ -171,25 +177,30 @@ useEffect(() => {
           </div>
           <button className="sidebar-close" onClick={() => setMenuOpen(false)}>✕</button>
         </div>
-        {tabs.map(([key, label]) => (
-          <Fragment key={key}>
-            {key === 'import' && <div className="sidebar-group">Quản trị</div>}
-            <button
-              className={tab === key ? 'sidebar-item active' : 'sidebar-item'}
-              onClick={() => { setTab(key); setMenuOpen(false); }}
-            >
-              {label}
-            </button>
+        {sidebarGroups.map((group) => (
+          <Fragment key={group.title || 'chung'}>
+            {group.title && <div className="sidebar-group">{group.title}</div>}
+            {group.keys.map((key) => {
+              const found = tabs.find(([k]) => k === key);
+              if (!found) return null;
+              return (
+                <button
+                  key={key}
+                  className={tab === key ? 'sidebar-item active' : 'sidebar-item'}
+                  onClick={() => { setTab(key); setMenuOpen(false); }}
+                >
+                  {found[1]}
+                </button>
+              );
+            })}
           </Fragment>
         ))}
       </div>
-     
       <div className="card">
         {tab === 'home' && <Home signal={signal} user={user} goTab={setTab} />}
         {tab === 'chemicals' && <Chemicals signal={signal} user={user} />}
         {tab === 'suppliers' && <Suppliers signal={signal} user={user} />}
         {tab === 'lots' && <Lots signal={signal} />}
-        {tab === 'qc' && <Qc signal={signal} />}
         {tab === 'inventory' && <Inventory signal={signal} user={user} />}
         {tab === 'archive' && <Archive signal={signal} />}
         {tab === 'export' && <Export signal={signal} />}

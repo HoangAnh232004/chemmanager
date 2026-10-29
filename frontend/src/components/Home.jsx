@@ -1,32 +1,13 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import api from '../api';
 import './Home.css';
 
 // Trang chủ theo giao diện demo đã chốt: chỉ đổi bố cục/hiển thị,
 // toàn bộ logic lấy số liệu và luật cảnh báo giữ nguyên như bản cũ.
-const normalize = (s) => (s || '').toString().toLowerCase().normalize('NFD').replace(/\p{M}/gu, '').replace(/đ/g, 'd');
 
 function todayStr() {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-}
-
-// Bảng chạy dọc: danh sách lặp 2 lần để cuộn vòng liên tục, rê chuột vào thì dừng
-function Ticker({ rows, emptyText, duration }) {
-  if (!rows.length) return <div className="hm-ticker-empty">{emptyText}</div>;
-  const track = [...rows, ...rows];
-  return (
-    <div className="hm-ticker">
-      <div className="hm-ticker-track" style={{ animationDuration: `${duration}s` }}>
-        {track.map((r, i) => (
-          <div key={i} className="hm-trow">
-            <span className="hm-trow-name">{r.time ? `${r.time} · ` : ''}{r.name}</span>
-            <span className="hm-trow-qty">{Number(r.qty).toLocaleString('vi-VN')} kg</span>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
 }
 
 // Icon SVG nét mảnh trong ô vuông bo tròn (kiểu icon của demo, không dùng emoji)
@@ -44,8 +25,6 @@ export default function Home({ signal, user, goTab }) {
   const [lots, setLots] = useState([]);
   const [exports, setExports] = useState([]);
   const [pending, setPending] = useState([]);
-  const [query, setQuery] = useState('');
-  const searchRef = useRef(null);
   const isAdmin = user?.role === 'admin';
 
   const load = async () => {
@@ -79,61 +58,37 @@ export default function Home({ signal, user, goTab }) {
     return { name, total, status };
   }).filter((a) => a.status).sort((a, b) => rank[a.status] - rank[b.status]);
 
-  // Nhập / xuất trong ngày (ngày trên máy): nhập = lot tạo hôm nay, xuất = lần xuất hôm nay
+  // Nhập / xuất trong ngày (ngày trên máy): nhập = lot có Ngày nhập hôm nay, xuất = lần xuất hôm nay.
+  // Lưu ý: bảng lots KHÔNG có cột created_at nên không lọc theo created_at được —
+  // phải lọc theo received_date (chính là cột "Ngày nhập" ở tab Mua/nhập).
   const today = todayStr();
   const importsToday = lots
-    .filter((l) => String(l.created_at || '').slice(0, 10) === today)
+    .filter((l) => String(l.received_date || l.created_at || '').slice(0, 10) === today)
     .map((l) => {
       const t = String(l.created_at || '').slice(11, 16);
       return { time: /^\d{2}:\d{2}$/.test(t) ? t : '', name: l.chemical_name || 'Không tên', qty: Number(l.quantity) || 0 };
     })
     .sort((a, b) => (a.time < b.time ? -1 : a.time > b.time ? 1 : 0));
-  const totalIn = importsToday.reduce((s, r) => s + r.qty, 0);
   const exportsToday = exports
     .filter((x) => String(x.export_date || '').slice(0, 10) === today)
     .map((x) => ({ time: '', name: x.chemical_name || 'Không tên', qty: Number(x.quantity) || 0 }));
-  const totalOut = exportsToday.reduce((s, r) => s + r.qty, 0);
-
-  // Tìm kiếm nhanh: lọc hóa chất không phân biệt dấu, bấm vào thì sang tab Kho
-  const q = normalize(query);
-  const searchResults = q ? chemicals.filter((c) => normalize(c.name).includes(q)).slice(0, 6) : [];
 
   return (
     <div className="hm-home">
-      <div className="hm-search">
-        <input
-          ref={searchRef}
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          onKeyDown={(e) => { if (e.key === 'Enter') goTab('inventory'); }}
-          placeholder="Tìm hóa chất... (gõ không dấu vẫn tìm được, ví dụ: aceton)"
-        />
-        {searchResults.length > 0 && (
-          <div className="hm-results">
-            {searchResults.map((c) => (
-              <div key={c.id} className="hm-result" onClick={() => goTab('inventory')}>
-                <span>{c.name}</span>
-                <span className="hm-result-stock">Tồn {(totals[c.name] || 0).toLocaleString('vi-VN')} kg</span>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-
       <div className="hm-kpis">
-        <button type="button" className="hm-kpi" onClick={() => goTab('lots')}>
+        <div className="hm-kpi">
           <b>{importsToday.length}</b><span>Lượt nhập hôm nay</span>
-        </button>
-        <button type="button" className="hm-kpi" onClick={() => goTab('export')}>
+        </div>
+        <div className="hm-kpi">
           <b>{exportsToday.length}</b><span>Lượt xuất hôm nay</span>
-        </button>
-        <button type="button" className="hm-kpi warn" onClick={() => goTab('inventory')}>
+        </div>
+        <div className="hm-kpi warn">
           <b>{alerts.length}</b><span>Cảnh báo tồn kho</span>
-        </button>
+        </div>
         {isAdmin && (
-          <button type="button" className="hm-kpi" onClick={() => goTab('approvals')}>
+          <div className="hm-kpi">
             <b>{pending.length}</b><span>Tài khoản chờ duyệt</span>
-          </button>
+          </div>
         )}
       </div>
 
@@ -155,7 +110,6 @@ export default function Home({ signal, user, goTab }) {
             {isAdmin && (
               <button type="button" className="hm-tile" onClick={() => goTab('import')}><Icon><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><path d="M14 2v6h6" /><path d="M9 13h6M9 17h6" /></Icon><b>Nhập Excel</b><small>Nhập file STOCK LIST</small></button>
             )}
-            <button type="button" className="hm-tile" onClick={() => searchRef.current?.focus()}><Icon><circle cx="11" cy="11" r="8" /><path d="M21 21l-4.35-4.35" /></Icon><b>Tìm kiếm</b><small>Tìm nhanh theo tên hóa chất</small></button>
           </div>
         </section>
 
@@ -180,17 +134,6 @@ export default function Home({ signal, user, goTab }) {
             )}
           </div>
         </section>
-      </div>
-
-      <div className="hm-today">
-        <div className="hm-ticker-wrap in">
-          <div className="hm-ticker-head"><b>↑ Nhập hôm nay</b><span>{totalIn.toLocaleString('vi-VN')} kg</span></div>
-          <Ticker rows={importsToday} emptyText="Hôm nay chưa có nhập kho." duration={Math.max(6, importsToday.length * 3)} />
-        </div>
-        <div className="hm-ticker-wrap out">
-          <div className="hm-ticker-head"><b>↓ Xuất hôm nay</b><span>{totalOut.toLocaleString('vi-VN')} kg</span></div>
-          <Ticker rows={exportsToday} emptyText="Hôm nay chưa có xuất kho." duration={Math.max(6, exportsToday.length * 3) + 3} />
-        </div>
       </div>
     </div>
   );
