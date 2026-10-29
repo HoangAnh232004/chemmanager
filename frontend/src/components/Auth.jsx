@@ -47,14 +47,6 @@ const IconCheck = () => (
     <path d="M20 6L9 17l-5-5" />
   </svg>
 );
-const IconFlask = () => (
-  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M9 3h6" />
-    <path d="M10 3v6.2L4.8 18a2 2 0 0 0 1.8 3h10.8a2 2 0 0 0 1.8-3L14 9.2V3" />
-    <path d="M7.5 15h9" />
-  </svg>
-);
-
 export default function Auth({ onLogin }) {
   const [mode, setMode] = useState('login'); // 'login' | 'register' | 'verify'
   const [username, setUsername] = useState('');
@@ -178,8 +170,8 @@ export default function Auth({ onLogin }) {
           <div className="auth-deco auth-deco-1" />
           <div className="auth-deco auth-deco-2" />
           <div className="auth-deco auth-deco-3" />
-          <div className="auth-logo"><IconFlask /></div>
-          <h1>Quản lý hóa chất</h1>
+          <img className="auth-logo" src="/logo.png" alt="KhoManager" />
+          <h1>KhoManager</h1>
           <p className="auth-brand-tag">Theo dõi tồn kho, nhập xuất và cảnh báo thiếu hàng — tất cả trong một hệ thống duy nhất.</p>
           <div className="auth-features">
             <div className="auth-feature"><IconCheck /> Tồn kho cập nhật theo thời gian thực</div>
@@ -298,7 +290,7 @@ export default function Auth({ onLogin }) {
           {message && (
             <p className={`auth-msg ${messageType}`}>{message}</p>
           )}
-          <p className="auth-foot">© 2026 Hệ thống quản lý hóa chất</p>
+          <p className="auth-foot">© 2026 KhoManager</p>
         </div>
       </div>
     </div>
