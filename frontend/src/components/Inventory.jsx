@@ -3,6 +3,7 @@ import api from '../api';
 import Pagination from './Pagination';
 import ConfirmModal from './ConfirmModal';
 import { exportMonthlyPDF } from './monthlyPdf';
+import './Inventory.css';
 
 // So sánh không phân biệt dấu và hoa thường: gõ "hoa chat" vẫn khớp "Hóa chất"
 const normalize = (s) => (s || '').toString().toLowerCase().normalize('NFD').replace(/\p{M}/gu, '').replace(/đ/g, 'd');
@@ -81,6 +82,17 @@ export default function Inventory({ signal, user }) {
     }
   };
 
+  // Lưu ghi chú đặt hàng của từng hóa chất: chọn "Đã đặt" khi đã đặt hàng
+  // bên ngoài, chọn "—" để xóa ghi chú; lưu xong tải lại bảng
+  const saveNote = async (r, value) => {
+    try {
+      await api.put(`/lots/chemical-note/${r.chemical_id}`, { order_note: value });
+      load();
+    } catch (err) {
+      alert(err.response?.data?.message || 'Lưu ghi chú thất bại');
+    }
+  };
+
   const exportPDF = async () => {
     setExporting(true);
     try {
@@ -124,13 +136,25 @@ export default function Inventory({ signal, user }) {
         <button onClick={exportPDF} disabled={exporting}>{exporting ? 'Đang tạo...' : 'Xuất PDF'}</button>
       </div>
       <table>
-        <thead><tr><th>STT</th><th>Tên hóa chất</th><th>Tên Hàn</th><th>NCC</th><th>Hạn dùng</th><th>Quy cách</th><th>Tồn đầu kỳ</th><th>Tối thiểu</th><th>Tối đa</th><th>Nhập</th><th>Xuất</th><th>Tồn</th><th>Trạng thái</th></tr></thead>
+        <thead><tr><th>STT</th><th>Tên hóa chất</th><th>Tên Hàn</th><th>NCC</th><th>Hạn dùng</th><th>Quy cách</th><th>Tồn đầu kỳ</th><th>Tối thiểu</th><th>Tối đa</th><th>Nhập</th><th>Xuất</th><th>Tồn</th><th>Trạng thái</th><th>Ghi chú</th></tr></thead>
         <tbody>
           {pageItems.map((r, idx) => (
             <tr key={r.chemical_name}>
               <td>{(safePage - 1) * pageSize + idx + 1}</td><td>{r.chemical_name}</td><td>{r.korean_name || '—'}</td><td>{r.supplier_name || '—'}</td>
               <td>{r.expiry ? r.expiry.slice(0, 10) : '—'}</td><td>{r.packaging || '—'}</td><td>{r.opening_stock}</td><td>{r.minStock ? r.minStock : '—'}</td><td>{r.maxStock ? r.maxStock : '—'}</td>
               <td>{r.stock_in}</td><td>{r.stock_out}</td><td>{r.closing}</td><td className={r.statusClass}>{r.status}</td>
+              <td>
+                <select
+                  className={`note-select${r.order_note ? ' has-note' : ''}`}
+                  value={r.order_note || ''}
+                  disabled={!r.chemical_id}
+                  title={r.chemical_id ? 'Chọn khi đã đặt hàng bên ngoài' : 'Hóa chất chưa có trong danh mục nên không lưu được ghi chú'}
+                  onChange={(e) => saveNote(r, e.target.value)}
+                >
+                  <option value="">—</option>
+                  <option value="Đã đặt">Đã đặt</option>
+                </select>
+              </td>
             </tr>
           ))}
         </tbody>

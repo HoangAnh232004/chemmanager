@@ -213,6 +213,7 @@ async function clearOpenPeriodRows() {
 
 function shapeRow(r, live) {
   return {
+    chemical_id: r.chemical_id || null,
     chemical_name: r.chemical_name,
     korean_name: r.korean_name || '',
     supplier_name: r.supplier_name || '',
@@ -224,6 +225,7 @@ function shapeRow(r, live) {
     stock_out: num(r.stock_out),
     closing: live ? live.total : num(r.closing_stock),
     expiry: live ? (live.expiry_date || '') : (r.expiry_date || ''),
+    order_note: r.order_note || '',
   };
 }
 
@@ -241,6 +243,8 @@ async function getCurrentView() {
     const lv = live.get(r.chemical_name);
     const info = chemByName.get(r.chemical_name) || {};
     const merged = { ...r,
+      chemical_id: info.id || r.chemical_id || null,
+      order_note: info.order_note || '',
       korean_name: info.korean_name || r.korean_name || '',
       packaging: info.packaging || r.packaging || '',
       min_stock: info.min_stock != null ? info.min_stock : r.min_stock,
@@ -252,7 +256,7 @@ async function getCurrentView() {
   for (const [name, lv] of live) {
     if (seen.has(name)) continue;
     const info = chemByName.get(name) || {};
-    out.push(shapeRow({ chemical_name: name, korean_name: info.korean_name || '', supplier_name: lv.supplier_name || '', packaging: info.packaging || '', min_stock: info.min_stock || 0, order_qty: info.order_qty || 0, opening_stock: 0, manual_in: 0, excel_in: 0, stock_out: 0 }, lv));
+    out.push(shapeRow({ chemical_id: info.id || null, chemical_name: name, korean_name: info.korean_name || '', supplier_name: lv.supplier_name || '', packaging: info.packaging || '', min_stock: info.min_stock || 0, order_qty: info.order_qty || 0, opening_stock: 0, manual_in: 0, excel_in: 0, stock_out: 0, order_note: info.order_note || '' }, lv));
   }
   out.sort((a, b) => (a.chemical_name || '').localeCompare(b.chemical_name || ''));
   return { period: period.period, periodLabel: labelOf(period.period), rows: out };

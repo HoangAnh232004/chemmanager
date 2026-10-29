@@ -1,0 +1,23 @@
+/* Ô chọn ghi chú đặt hàng ở cột Ghi chú, tab Kho */
+.note-select {
+  width: 100%;
+  min-width: 110px;
+  padding: 6px 8px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  background: #fff;
+  color: #111827;
+  font-size: 14px;
+  cursor: pointer;
+}
+.note-select:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+/* Đã chọn "Đã đặt" thì tô nền xanh ngọc cho dễ quét mắt */
+.note-select.has-note {
+  background: #f0fdfa;
+  border-color: #14b8a6;
+  color: #0f766e;
+  font-weight: 600;
+}

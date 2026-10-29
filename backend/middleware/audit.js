@@ -51,6 +51,9 @@ function lotDetail(verb, chemicalName, supplierName) {
 // thay vì id (#572), mã loằng ngoằng hay JSON.
 async function auditLogger(req, res, next) {
   if (!['POST', 'PUT', 'DELETE'].includes(req.method)) return next();
+
+  // Ghi chú đặt hàng ở tab Kho chỉ là chú thích, không ghi vào lịch sử hoạt động
+  if (req.url.split('?')[0].startsWith('/chemical-note')) return next();
   const tableName = req.baseUrl.replace('/api/', '');
   const method = req.method;
 

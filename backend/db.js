@@ -50,6 +50,7 @@ async function initDb() {
   await addColumnIfMissing('chemicals', 'packaging', 'VARCHAR(100)');
   await addColumnIfMissing('chemicals', 'min_stock', 'DECIMAL(12,2) DEFAULT 0');
   await addColumnIfMissing('chemicals', 'order_qty', 'DECIMAL(12,2) DEFAULT 0');
+  await addColumnIfMissing('chemicals', 'order_note', 'VARCHAR(20)');
 
   // Nhà cung cấp
   // Nhà cung cấp

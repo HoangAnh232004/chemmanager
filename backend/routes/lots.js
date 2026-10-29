@@ -30,6 +30,23 @@ router.get('/exports', async (req, res) => {
   res.json(rows);
 });
 
+// Ghi chú đặt hàng của từng hóa chất ở tab Kho: chọn "Đã đặt" khi đã đặt
+// hàng bên ngoài (lưu vào chemicals.order_note; không ghi lịch sử hoạt động,
+// xem middleware/audit.js). Gắn ở router lots vì file routes/chemicals.js
+// chưa có trong bộ file này — có file đó thì chuyển endpoint sang cho đúng chỗ.
+router.put('/chemical-note/:id', async (req, res) => {
+  try {
+    const note = req.body?.order_note || '';
+    if (note !== '' && note !== 'Đã đặt') return res.status(400).json({ message: 'Ghi chú không hợp lệ' });
+    const [r] = await pool.query('UPDATE chemicals SET order_note=? WHERE id=?', [note, req.params.id]);
+    if (!r.affectedRows) return res.status(404).json({ message: 'Không tìm thấy hóa chất' });
+    res.json({ message: 'Đã lưu ghi chú' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Lưu ghi chú thất bại' });
+  }
+});
+
 // Nhập lot mới: tự tạo tồn kho + phiếu QC chờ kiểm
 router.post('/', async (req, res) => {
   try {
