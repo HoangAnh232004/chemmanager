@@ -38,17 +38,17 @@ export default function ActivityLog({ signal }) {
       {list.length === 0 && <p>Chưa có hoạt động nào.</p>}
       <input placeholder="Tìm tài khoản..." value={search} onChange={(e) => { setSearch(e.target.value); setPage(1); }} className="search-box" />
       <table>
-        <thead><tr><th>STT</th><th>Thời gian</th><th>Người làm</th><th>Hành động</th><th>Chi tiết</th></tr></thead>
+        <thead><tr><th>Thời gian</th><th>Người làm</th><th>Hành động</th><th>Chi tiết</th></tr></thead>
         <tbody>
           {pageItems.map((l, idx) => (
             <tr key={l.id}>
-              <td>{filtered.length - ((safePage - 1) * pageSize + idx)}</td><td>{new Date(l.created_at).toLocaleString('vi-VN')}</td>
+              <td>{new Date(l.created_at).toLocaleString('vi-VN')}</td>
               <td>{l.username}</td>
               <td>{actionLabel[l.action] || l.action}</td>
               <td>{l.detail}</td>
             </tr>
           ))}
-          {pageItems.length === 0 && list.length > 0 && <tr><td colSpan={5}>Không tìm thấy</td></tr>}
+          {pageItems.length === 0 && list.length > 0 && <tr><td colSpan={4}>Không tìm thấy</td></tr>}
         </tbody>
       </table>
       </div>
