@@ -104,7 +104,7 @@
   background: var(--primary-tint);
 }
 .notif-item.unread {
-  background: #f0fdfa;
+  background: #ccfbf1;
 }
 .notif-dot {
   width: 10px;
