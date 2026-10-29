@@ -677,3 +677,14 @@ h3 {
     justify-content: flex-start;
   }
 }
+/* Hiệu ứng load trang mượt: mờ dần + trượt nhẹ khi mở app và khi chuyển tab */
+@keyframes pageFadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.container {
+  animation: pageFadeIn 0.3s ease-out;
+}
+.card > * {
+  animation: pageFadeIn 0.3s ease-out;
+}

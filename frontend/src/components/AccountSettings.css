@@ -1,0 +1,133 @@
+/* Modal Cài đặt tài khoản mở từ menu tài khoản + nút Cài đặt trong menu đó. */
+.settings-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+.settings-modal {
+  width: 400px;
+  max-width: 100%;
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: var(--shadow-lg);
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.settings-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 17px;
+}
+.settings-close {
+  background: none;
+  border: none;
+  font-size: 16px;
+  cursor: pointer;
+  color: var(--muted);
+}
+.settings-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 14px;
+  color: var(--muted);
+}
+.settings-row b {
+  color: var(--ink);
+  text-align: right;
+  word-break: break-all;
+}
+.settings-divider {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: 4px 0;
+}
+.settings-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.settings-form h3 {
+  margin: 0;
+  font-size: 15px;
+}
+.settings-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--muted);
+}
+.settings-form input {
+  padding: 10px 12px;
+  border: 1px solid var(--border-strong);
+  border-radius: 10px;
+  font-size: 14px;
+  outline: none;
+}
+.settings-form input:focus {
+  border-color: var(--primary-border);
+  box-shadow: 0 0 0 3px var(--primary-tint);
+}
+.settings-error {
+  color: var(--danger);
+  font-size: 13px;
+}
+.settings-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 4px;
+}
+.settings-cancel {
+  padding: 10px 16px;
+  border-radius: 10px;
+  border: 1px solid var(--border-strong);
+  background: #fff;
+  color: var(--ink);
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+}
+.settings-save {
+  padding: 10px 16px;
+  border-radius: 10px;
+  border: none;
+  background: linear-gradient(135deg, #14b8a6, #0f766e);
+  color: #fff;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+}
+.settings-save:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+.settings-done p {
+  margin: 0 0 12px;
+  font-size: 14px;
+  line-height: 1.6;
+}
+/* Nút Cài đặt trong menu tài khoản (nằm trên nút Đăng xuất). */
+.account-settings {
+  width: 100%;
+  padding: 10px;
+  border-radius: 10px;
+  border: 1px solid var(--primary-border);
+  background: var(--primary-tint);
+  color: var(--primary-dark);
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+}
+.account-settings:hover {
+  background: var(--primary-tint-strong);
+}

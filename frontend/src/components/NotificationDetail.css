@@ -1,0 +1,119 @@
+/* Bảng nổi chi tiết mở ra khi bấm vào 1 thông báo (cùng kiểu modal Cài đặt tài khoản). */
+.nd-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+.nd-modal {
+  width: 400px;
+  max-width: 100%;
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: var(--shadow-lg);
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.nd-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 17px;
+}
+.nd-head b {
+  word-break: break-word;
+}
+.nd-close {
+  background: none;
+  border: none;
+  font-size: 16px;
+  cursor: pointer;
+  color: var(--muted);
+  flex-shrink: 0;
+}
+.nd-badge {
+  align-self: flex-start;
+  padding: 4px 12px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 700;
+}
+.nd-badge.out {
+  background: #fef2f2;
+  color: #dc2626;
+}
+.nd-badge.order {
+  background: #fff7ed;
+  color: #ea580c;
+}
+.nd-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 14px;
+  color: var(--muted);
+}
+.nd-row b {
+  color: var(--ink);
+  text-align: right;
+  word-break: break-word;
+}
+.nd-stock.out {
+  color: #dc2626;
+}
+.nd-stock.order {
+  color: #ea580c;
+}
+.nd-error {
+  color: var(--danger);
+  font-size: 13px;
+}
+.nd-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 4px;
+}
+.nd-btn-neutral {
+  padding: 10px 16px;
+  border-radius: 10px;
+  border: 1px solid var(--border-strong);
+  background: #fff;
+  color: var(--ink);
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+}
+.nd-btn-primary {
+  padding: 10px 16px;
+  border-radius: 10px;
+  border: none;
+  background: linear-gradient(135deg, #14b8a6, #0f766e);
+  color: #fff;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+}
+.nd-btn-danger {
+  padding: 10px 16px;
+  border-radius: 10px;
+  border: 1px solid #fecaca;
+  background: var(--danger-tint);
+  color: var(--danger);
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+}
+.nd-btn-primary:disabled,
+.nd-btn-danger:disabled,
+.nd-btn-neutral:disabled {
+  opacity: 0.6;
+  cursor: default;
+}

@@ -1,0 +1,24 @@
+/* Hiệu ứng load cho các nút tài khoản: vòng xoay nhỏ trong nút + nút mờ đi
+   và không bấm lại được khi đang xử lý. Dùng chung cho trang đăng nhập/đăng ký/
+   xác thực/quên mật khẩu (Auth.jsx) và nút đăng xuất trong menu tài khoản (App.jsx).
+   Vòng xoay lấy màu theo chữ của nút (currentColor) nên hợp cả nút nền xanh,
+   nút nền trắng lẫn nút đỏ. */
+.auth-spinner {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  margin-right: 8px;
+  vertical-align: -2px;
+  border: 2px solid currentColor;
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: authSpin 0.8s linear infinite;
+}
+@keyframes authSpin {
+  to { transform: rotate(360deg); }
+}
+.auth-submit:disabled,
+.account-logout:disabled {
+  opacity: 0.7;
+  cursor: default;
+}

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import api from '../api';
 import './Auth.css';
+import './loading.css';
 
 // Trang đăng nhập/đăng ký chuyên nghiệp: thẻ chia đôi — trái là panel thương hiệu,
 // phải là form có nhãn, icon trong ô nhập và nút ẩn/hiện mật khẩu.
@@ -48,16 +49,19 @@ const IconCheck = () => (
   </svg>
 );
 export default function Auth({ onLogin }) {
-  const [mode, setMode] = useState('login'); // 'login' | 'register' | 'verify'
+  const [mode, setMode] = useState('login'); // 'login' | 'register' | 'verify' | 'forgot' | 'verify-reset' | 'reset'
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [code, setCode] = useState('');
   const [verifyUsername, setVerifyUsername] = useState('');
+  const [resetEmail, setResetEmail] = useState('');
   const [message, setMessage] = useState('');
   const [messageType, setMessageType] = useState('error'); // 'error' | 'success'
   const [showPassword, setShowPassword] = useState(false);
   const [remember, setRemember] = useState(true); // Ghi nhớ đăng nhập: tích sẵn
+  const [loading, setLoading] = useState(false); // Đang gọi API thì nút xoay + không bấm lại được
 
   const showMessage = (text, type = 'error') => {
     setMessage(text);
@@ -65,15 +69,27 @@ export default function Auth({ onLogin }) {
   };
 
   const switchMode = (m) => {
+    if (loading) return; // Đang gọi API thì không chuyển form để khỏi loạn
     setMode(m);
     setMessage('');
     setShowPassword(false);
   };
 
+  // Chạy 1 gọi API kèm hiệu ứng load: đang gọi thì nút xoay + không bấm lại được,
+  // gọi xong (thành công hay lỗi) thì nút trở lại bình thường
+  const callApi = async (fn) => {
+    setLoading(true);
+    try {
+      return await fn();
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const submitLogin = async (e) => {
     e.preventDefault();
     try {
-      const res = await api.post('/auth/login', { username, password });
+      const res = await callApi(() => api.post('/auth/login', { username, password }));
       if (remember) {
         // Ghi nhớ: tài khoản lưu ở localStorage, đóng trình duyệt mở lại vẫn còn đăng nhập
         localStorage.setItem('token', res.data.token);
@@ -104,7 +120,7 @@ export default function Auth({ onLogin }) {
   const submitRegister = async (e) => {
     e.preventDefault();
     try {
-      const res = await api.post('/auth/register', { username, email, password });
+      const res = await callApi(() => api.post('/auth/register', { username, email, password }));
       setVerifyUsername(res.data.username || username);
       setMode('verify');
       showMessage(res.data.message, 'success');
@@ -116,7 +132,7 @@ export default function Auth({ onLogin }) {
   const submitVerify = async (e) => {
     e.preventDefault();
     try {
-      const res = await api.post('/auth/verify', { username: verifyUsername, code });
+      const res = await callApi(() => api.post('/auth/verify', { username: verifyUsername, code }));
       showMessage(res.data.message, 'success');
       setMode('login');
       setCode('');
@@ -127,16 +143,79 @@ export default function Auth({ onLogin }) {
 
   const resendCode = async () => {
     try {
-      const res = await api.post('/auth/resend-code', { username: verifyUsername });
+      const res = await callApi(() => api.post('/auth/resend-code', { username: verifyUsername }));
       showMessage(res.data.message, 'success');
     } catch (err) {
       showMessage(err.response?.data?.message || 'Có lỗi xảy ra');
     }
   };
 
-  const passwordField = (id, autoComplete, fieldName) => (
+  // Quên mật khẩu bước 1: nhập Gmail → gửi mã 6 số, sang form đặt lại mật khẩu
+  const submitForgot = async (e) => {
+    e.preventDefault();
+    try {
+      const res = await callApi(() => api.post('/auth/forgot-password', { email }));
+      setResetEmail(email);
+      setPassword('');
+      setCode('');
+      setMode('verify-reset');
+      showMessage(res.data.message, 'success');
+    } catch (err) {
+      showMessage(err.response?.data?.message || 'Có lỗi xảy ra');
+    }
+  };
+
+  // Quên mật khẩu bước 2: xác nhận mã đúng + còn hạn mới cho sang bước đặt lại
+  // (chỉ kiểm tra, chưa xóa mã — bước đặt lại sẽ kiểm tra lại mã này)
+  const submitVerifyReset = async (e) => {
+    e.preventDefault();
+    try {
+      const res = await callApi(() => api.post('/auth/verify-reset-code', { email: resetEmail, code }));
+      setMode('reset');
+      showMessage(res.data.message, 'success');
+    } catch (err) {
+      showMessage(err.response?.data?.message || 'Có lỗi xảy ra');
+    }
+  };
+
+  // Quên mật khẩu bước 3: nhập mật khẩu mới → đổi xong về đăng nhập
+  const submitReset = async (e) => {
+    e.preventDefault();
+    if (password.length < 6) {
+      showMessage('Mật khẩu mới ít nhất 6 ký tự');
+      return;
+    }
+    if (password !== confirmPassword) {
+      showMessage('Mật khẩu mới nhập lại chưa khớp');
+      return;
+    }
+    try {
+      const res = await callApi(() => api.post('/auth/reset-password', { email: resetEmail, code, newPassword: password }));
+      setUsername(resetEmail); // Đăng nhập chấp nhận cả Gmail nên điền sẵn cho tiện
+      setMode('login');
+      setCode('');
+      setPassword('');
+      setConfirmPassword('');
+      showMessage(res.data.message, 'success');
+    } catch (err) {
+      // Lỗi ở bước này hầu hết là do mã (sai hoặc hết hạn) → quay lại bước xác nhận mã để gửi lại mã
+      setMode('verify-reset');
+      showMessage(err.response?.data?.message || 'Có lỗi xảy ra');
+    }
+  };
+
+  const resendResetCode = async () => {
+    try {
+      const res = await callApi(() => api.post('/auth/forgot-password', { email: resetEmail }));
+      showMessage(res.data.message, 'success');
+    } catch (err) {
+      showMessage(err.response?.data?.message || 'Có lỗi xảy ra');
+    }
+  };
+
+  const passwordField = (id, autoComplete, fieldName, label = 'Mật khẩu') => (
     <div>
-      <label className="auth-label" htmlFor={id}>Mật khẩu</label>
+      <label className="auth-label" htmlFor={id}>{label}</label>
       <div className="auth-field">
         <IconLock />
         <input
@@ -189,17 +268,23 @@ export default function Auth({ onLogin }) {
 
         <div className="auth-form">
           <h2 className="auth-form-title">
-            {mode === 'login' ? 'Đăng nhập' : mode === 'register' ? 'Đăng ký tài khoản' : 'Xác thực Gmail'}
+            {mode === 'login' ? 'Đăng nhập' : mode === 'register' ? 'Đăng ký tài khoản' : mode === 'forgot' ? 'Quên mật khẩu' : mode === 'verify-reset' ? 'Xác nhận mã' : mode === 'reset' ? 'Đặt lại mật khẩu' : 'Xác thực Gmail'}
           </h2>
           <p className="auth-form-sub">
             {mode === 'login'
               ? 'Nhập tài khoản của bạn để tiếp tục.'
               : mode === 'register'
                 ? 'Tạo tài khoản mới, mã xác thực sẽ gửi về Gmail.'
-                : 'Nhập mã 6 số đã gửi về Gmail của bạn.'}
+                : mode === 'forgot'
+                  ? 'Nhập Gmail đã đăng ký, mã đặt lại mật khẩu sẽ gửi về Gmail.'
+                  : mode === 'verify-reset'
+                    ? 'Nhập mã 6 số đã gửi về Gmail của bạn.'
+                    : mode === 'reset'
+                      ? 'Nhập mật khẩu mới.'
+                      : 'Nhập mã 6 số đã gửi về Gmail của bạn.'}
           </p>
 
-          {mode !== 'verify' && (
+          {['login', 'register'].includes(mode) && (
             <div className="auth-tabs">
               <button type="button" className={`auth-tab${mode === 'login' ? ' active' : ''}`} onClick={() => switchMode('login')}>
                 Đăng nhập
@@ -224,7 +309,10 @@ export default function Auth({ onLogin }) {
                 <input type="checkbox" checked={remember} onChange={(e) => setRemember(e.target.checked)} />
                 Ghi nhớ đăng nhập
               </label>
-              <button type="submit" className="auth-submit">Đăng nhập</button>
+              <button type="submit" className="auth-submit" disabled={loading}>{loading ? (<><span className="auth-spinner" /> Đang đăng nhập...</>) : 'Đăng nhập'}</button>
+              <div className="auth-center">
+                <button type="button" className="auth-link" onClick={() => switchMode('forgot')}>Quên mật khẩu?</button>
+              </div>
             </form>
           )}
 
@@ -245,8 +333,79 @@ export default function Auth({ onLogin }) {
                 </div>
               </div>
               {passwordField('reg-pass', 'new-password', 'new-password')}
-              <button type="submit" className="auth-submit">Đăng ký</button>
+              <button type="submit" className="auth-submit" disabled={loading}>{loading ? (<><span className="auth-spinner" /> Đang đăng ký...</>) : 'Đăng ký'}</button>
               <p className="auth-note">Sau khi đăng ký, mã xác thực 6 số sẽ được gửi vào Gmail của bạn.</p>
+            </form>
+          )}
+
+          {mode === 'forgot' && (
+            <form className="auth-form-stack" onSubmit={submitForgot}>
+              <div>
+                <label className="auth-label" htmlFor="forgot-email">Gmail</label>
+                <div className="auth-field">
+                  <IconMail />
+                  <input id="forgot-email" name="email" className="auth-input" type="email" autoComplete="email" placeholder="ten@gmail.com" value={email} onChange={(e) => setEmail(e.target.value)} required />
+                </div>
+              </div>
+              <button type="submit" className="auth-submit" disabled={loading}>{loading ? (<><span className="auth-spinner" /> Đang gửi...</>) : 'Gửi mã'}</button>
+              <div className="auth-center">
+                <button type="button" className="auth-link" onClick={() => switchMode('login')}>Quay lại đăng nhập</button>
+              </div>
+            </form>
+          )}
+
+          {mode === 'verify-reset' && (
+            <form className="auth-form-stack" onSubmit={submitVerifyReset}>
+              <p className="auth-verify-info">
+                Mã đặt lại mật khẩu đã gửi vào Gmail <b>{resetEmail}</b>. Mã có hiệu lực trong 1 phút.
+              </p>
+              <div>
+                <label className="auth-label" htmlFor="reset-code">Mã đặt lại mật khẩu</label>
+                <div className="auth-field">
+                  <IconShield />
+                  <input
+                    id="reset-code"
+                    className="auth-input"
+                    style={{ textAlign: 'center', letterSpacing: 4, fontSize: 18 }}
+                    autoComplete="one-time-code"
+                    name="code"
+                    placeholder="Nhập mã 6 số"
+                    value={code}
+                    onChange={(e) => setCode(e.target.value)}
+                    required
+                  />
+                </div>
+              </div>
+              <button type="submit" className="auth-submit" disabled={loading}>{loading ? (<><span className="auth-spinner" /> Đang xác nhận...</>) : 'Xác nhận mã'}</button>
+              <button type="button" className="auth-submit auth-submit-secondary" onClick={resendResetCode} disabled={loading}>{loading ? (<><span className="auth-spinner" /> Đang gửi...</>) : 'Gửi lại mã'}</button>
+              <div className="auth-center">
+                <button type="button" className="auth-link" onClick={() => switchMode('forgot')}>Dùng Gmail khác</button>
+                {' · '}
+                <button type="button" className="auth-link" onClick={() => switchMode('login')}>Quay lại đăng nhập</button>
+              </div>
+            </form>
+          )}
+
+          {mode === 'reset' && (
+            <form className="auth-form-stack" onSubmit={submitReset}>
+              <p className="auth-verify-info">
+                Mã đã xác nhận. Nhập mật khẩu mới cho Gmail <b>{resetEmail}</b>.
+              </p>
+              {passwordField('reset-pass', 'new-password', 'new-password', 'Mật khẩu mới')}
+              <div>
+                <label className="auth-label" htmlFor="reset-confirm">Nhập lại mật khẩu mới</label>
+                <div className="auth-field">
+                  <IconLock />
+                  <input id="reset-confirm" name="new-password-confirm" className="auth-input" style={{ paddingRight: 38 }} type={showPassword ? 'text' : 'password'} autoComplete="new-password" placeholder="Nhập lại mật khẩu mới" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} required />
+                  <button type="button" className="auth-eye" onClick={() => setShowPassword((v) => !v)} title={showPassword ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'}>
+                    {showPassword ? <IconEyeOff /> : <IconEye />}
+                  </button>
+                </div>
+              </div>
+              <button type="submit" className="auth-submit" disabled={loading}>{loading ? (<><span className="auth-spinner" /> Đang đặt lại...</>) : 'Đặt lại mật khẩu'}</button>
+              <div className="auth-center">
+                <button type="button" className="auth-link" onClick={() => switchMode('login')}>Quay lại đăng nhập</button>
+              </div>
             </form>
           )}
 
@@ -279,8 +438,8 @@ export default function Auth({ onLogin }) {
                   />
                 </div>
               </div>
-              <button type="submit" className="auth-submit">Xác thực</button>
-              <button type="button" className="auth-submit auth-submit-secondary" onClick={resendCode}>Gửi lại mã</button>
+              <button type="submit" className="auth-submit" disabled={loading}>{loading ? (<><span className="auth-spinner" /> Đang xác thực...</>) : 'Xác thực'}</button>
+              <button type="button" className="auth-submit auth-submit-secondary" onClick={resendCode} disabled={loading}>{loading ? (<><span className="auth-spinner" /> Đang gửi...</>) : 'Gửi lại mã'}</button>
               <div className="auth-center">
                 <button type="button" className="auth-link" onClick={() => switchMode('login')}>Quay lại đăng nhập</button>
               </div>

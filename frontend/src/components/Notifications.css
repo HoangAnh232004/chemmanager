@@ -1,0 +1,142 @@
+/* Chuông thông báo ở header: nút chuông vẽ bằng SVG + huy hiệu + bảng xổ xuống,
+   theo cùng kiểu với menu tài khoản trong theme.css (backdrop cố định, bảng tuyệt đối). */
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.notif-wrap {
+  position: relative;
+}
+.notif-btn {
+  position: relative;
+  width: 48px;
+  height: 48px;
+  background: #fff;
+  border: 1px solid var(--border-strong);
+  border-radius: 12px;
+  color: #0f766e;
+  cursor: pointer;
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.notif-btn:hover {
+  border-color: var(--primary-border);
+  background: var(--primary-tint);
+}
+.notif-btn svg {
+  transition: transform 0.2s ease;
+}
+.notif-btn:hover svg {
+  transform: rotate(-10deg);
+}
+.notif-badge {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 5px;
+  border-radius: 10px;
+  background: #dc2626;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.notif-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+}
+.notif-panel {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 8px);
+  z-index: 50;
+  width: 340px;
+  max-width: calc(100vw - 32px);
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  box-shadow: var(--shadow-lg);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+.notif-panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border);
+}
+.notif-panel-head b {
+  font-size: 15px;
+}
+.notif-list {
+  max-height: 380px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+.notif-item {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  width: 100%;
+  padding: 12px 16px;
+  background: none;
+  border: none;
+  border-bottom: 1px solid var(--border);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.notif-item:last-child {
+  border-bottom: none;
+}
+.notif-item:hover {
+  background: var(--primary-tint);
+}
+.notif-item.unread {
+  background: #f0fdfa;
+}
+.notif-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  margin-top: 5px;
+}
+.notif-dot.out {
+  background: #dc2626;
+}
+.notif-dot.order {
+  background: #ea580c;
+}
+.notif-dot.pending {
+  background: #2563eb;
+}
+.notif-item-title {
+  display: block;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink);
+}
+.notif-item-detail {
+  display: block;
+  font-size: 12px;
+  color: var(--muted);
+  margin-top: 2px;
+}
+.notif-empty {
+  padding: 24px 16px;
+  text-align: center;
+  color: var(--muted);
+  font-size: 14px;
+}

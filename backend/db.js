@@ -3,18 +3,15 @@ require('dotenv').config();
 
 const pool = mysql.createPool({
   host: process.env.DB_HOST || 'localhost',
-  port: process.env.DB_PORT || 3306,
   user: process.env.DB_USER || 'root',
   password: process.env.DB_PASSWORD || '',
-  database: process.env.DB_NAME || 'chem_manager',
-  ssl: process.env.DB_SSL === 'true' ? { minVersion: 'TLSv1.2' } : undefined,
+  database: 'chem_manager',
   // Trả ngày/giờ dạng chuỗi 'YYYY-MM-DD' thay vì đối tượng Date (driver tự đổi sang giờ UTC
   // làm frontend cắt chuỗi bị lùi 1 ngày: nhập 27 hiện 26 ở cả Mua/nhập, Xuất kho và Hạn dùng trong Kho)
   dateStrings: true,
   waitForConnections: true,
   connectionLimit: 10,
 });
-
 // Thêm cột vào bảng nếu chưa có (bảng cũ vẫn dùng được khi thêm trường mới)
 async function addColumnIfMissing(table, column, definition) {
   try {
@@ -28,14 +25,11 @@ async function initDb() {
   // Tạo database trước bằng kết nối tạm (vì pool chính đã gắn database)
   const tmp = await mysql.createConnection({
     host: process.env.DB_HOST || 'localhost',
-    port: process.env.DB_PORT || 3306,
     user: process.env.DB_USER || 'root',
     password: process.env.DB_PASSWORD || '',
-    ssl: process.env.DB_SSL === 'true' ? { minVersion: 'TLSv1.2' } : undefined,
   });
-  await tmp.query(`CREATE DATABASE IF NOT EXISTS ${process.env.DB_NAME || 'chem_manager'}`);
+  await tmp.query(`CREATE DATABASE IF NOT EXISTS chem_manager`);
   await tmp.end();
-
 
   // 1. Danh mục hóa chất
   await pool.query(`
@@ -191,6 +185,8 @@ if (phoneCols.length && phoneCols[0].len < 100) {
   await addColumnIfMissing('users', 'email_verified', 'TINYINT(1) DEFAULT 0');
   await addColumnIfMissing('users', 'verification_code', 'VARCHAR(10)');
   await addColumnIfMissing('users', 'verification_expires', 'DATETIME');
+  await addColumnIfMissing('users', 'reset_code', 'VARCHAR(10)');
+  await addColumnIfMissing('users', 'reset_expires', 'DATETIME');
 
   // Nhật ký hoạt động (admin giám sát)
   await pool.query(`

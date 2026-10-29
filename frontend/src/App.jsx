@@ -13,6 +13,10 @@ import Auth from './components/Auth';
 import AdminApprovals from './components/AdminApprovals';
 import ActivityLog from './components/ActivityLog';
 import ImportExcel from './components/ImportExcel';
+import Notifications from './components/Notifications';
+import AccountSettings from './components/AccountSettings';
+import { maskEmail } from './utils';
+import './components/loading.css';
 import { useEffect } from 'react';
 import socket from './socket';
 
@@ -20,9 +24,13 @@ import socket from './socket';
 export default function App() {
   const [tab, setTab] = useState(() => {
     // Tab cũ 'trace' đã đổi thành 'export': nếu trình duyệt còn nhớ tab cũ thì về trang chủ cho khỏi trắng trang
-    const saved = localStorage.getItem('activeTab');
     const valid = ['home', 'chemicals', 'suppliers', 'lots', 'qc', 'inventory', 'archive', 'export', 'import', 'approvals', 'audit'];
-    return valid.includes(saved) ? saved : 'home';
+    // Phân biệt F5 với đóng tab rồi mở lại: sessionStorage còn khi F5, mất khi đóng tab mở tab mới
+    const isReload = sessionStorage.getItem('tabAlive') === '1';
+    sessionStorage.setItem('tabAlive', '1');
+    if (!isReload) return 'home'; // Đóng tab rồi mở lại: luôn về trang chủ
+    const saved = localStorage.getItem('activeTab');
+    return valid.includes(saved) ? saved : 'home'; // F5: giữ nguyên tab đang xem
   });
 
 useEffect(() => {
@@ -42,6 +50,8 @@ useEffect(() => {
   const [signal, setSignal] = useState(0);
   const [menuOpen, setMenuOpen] = useState(false);
   const [accountOpen, setAccountOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [loggingOut, setLoggingOut] = useState(false);
 
 useEffect(() => {
   const handler = () => setSignal((s) => s + 1);
@@ -71,7 +81,19 @@ useEffect(() => {
     sessionStorage.removeItem('token');
     sessionStorage.removeItem('user');
     setTab('home');
+    // Reset cả trạng thái giao diện, không thì đăng nhập lại sẽ thấy menu tự mở
+    // sẵn và nút đăng xuất vẫn kẹt ở "Đang đăng xuất..."
+    setAccountOpen(false);
+    setLoggingOut(false);
     setUser(null);
+  };
+
+  // Đăng xuất vốn xử lý ngay lập tức nên giữ hiệu ứng load nửa giây cho dễ thấy
+  // rồi mới về trang đăng nhập (menu vẫn mở trong lúc load để thấy nút đang xoay)
+  const handleLogout = () => {
+    if (loggingOut) return;
+    setLoggingOut(true);
+    setTimeout(() => { logout(); }, 600);
   };
 
   const tabs = [
@@ -102,7 +124,9 @@ useEffect(() => {
             </button>
           )}
         </div>
-        <div className="account-wrap">
+        <div className="header-right">
+          <Notifications user={user} signal={signal} goTab={setTab} />
+          <div className="account-wrap">
           <button className="account-btn" onClick={() => setAccountOpen((v) => !v)} title="Tài khoản">
             <span className="account-avatar">{user.username?.[0]?.toUpperCase()}</span>
             <span className="account-text">
@@ -125,12 +149,14 @@ useEffect(() => {
                 <div className="account-menu-row"><span>Tên đăng nhập</span><b>{user.username}</b></div>
                 <div className="account-menu-row"><span>Vai trò</span><b>{user.role === 'admin' ? 'Quản trị viên' : 'Người dùng'}</b></div>
                 {user.email && (
-                  <div className="account-menu-row"><span>Gmail</span><b>{user.email}</b></div>
+                  <div className="account-menu-row"><span>Gmail</span><b>{maskEmail(user.email)}</b></div>
                 )}
-                <button className="account-logout" onClick={() => { setAccountOpen(false); logout(); }}>Đăng xuất</button>
+                <button className="account-settings" onClick={() => { setAccountOpen(false); setSettingsOpen(true); }}>Cài đặt tài khoản</button>
+                <button className="account-logout" onClick={handleLogout} disabled={loggingOut}>{loggingOut ? (<><span className="auth-spinner" /> Đang đăng xuất...</>) : 'Đăng xuất'}</button>
               </div>
             </>
           )}
+        </div>
         </div>
       </div>
       {menuOpen && <div className="sidebar-backdrop" onClick={() => setMenuOpen(false)} />}
@@ -186,6 +212,7 @@ useEffect(() => {
 
 
       </div>
+      {settingsOpen && <AccountSettings user={user} onClose={() => setSettingsOpen(false)} />}
     </div>
   );
 }

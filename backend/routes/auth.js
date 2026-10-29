@@ -14,15 +14,15 @@ const router = express.Router();
 // EMAIL_PASS không còn dùng nữa.
 // Dùng module https có sẵn của Node nên không cần cài thêm gói nào.
 // Timeout 15 giây: nếu Brevo không trả lời thì báo lỗi nhanh chứ không treo request.
-function sendVerificationCode(email, code) {
+function sendBrevoMail(email, subject, textContent) {
   return new Promise((resolve, reject) => {
     if (!process.env.BREVO_API_KEY) return reject(new Error('Chưa cấu hình BREVO_API_KEY'));
     if (!process.env.EMAIL_USER) return reject(new Error('Chưa cấu hình EMAIL_USER làm địa chỉ gửi'));
     const body = JSON.stringify({
       sender: { name: 'ChemManager', email: process.env.EMAIL_USER },
       to: [{ email }],
-      subject: 'Mã xác thực tài khoản - Quản lý hóa chất',
-      textContent: `Mã xác thực tài khoản của bạn là: ${code}\nMã có hiệu lực trong 15 phút. Nếu bạn không đăng ký tài khoản này, hãy bỏ qua email này.`,
+      subject,
+      textContent,
     });
     const req = https.request(
       {
@@ -51,6 +51,24 @@ function sendVerificationCode(email, code) {
     req.write(body);
     req.end();
   });
+}
+
+// Mã xác thực tài khoản mới (đăng ký / gửi lại mã)
+function sendVerificationCode(email, code) {
+  return sendBrevoMail(
+    email,
+    'Mã xác thực tài khoản - Quản lý hóa chất',
+    `Mã xác thực tài khoản của bạn là: ${code}\nMã có hiệu lực trong 15 phút. Nếu bạn không đăng ký tài khoản này, hãy bỏ qua email này.`
+  );
+}
+
+// Mã đặt lại mật khẩu (quên mật khẩu)
+function sendPasswordResetCode(email, code) {
+  return sendBrevoMail(
+    email,
+    'Mã đặt lại mật khẩu - KhoManager',
+    `Mã đặt lại mật khẩu của bạn là: ${code}\nMã có hiệu lực trong 1 phút. Nếu bạn không yêu cầu đặt lại mật khẩu, hãy bỏ qua email này.`
+  );
 }
 
 // Tạo mã xác thực 6 số
@@ -203,6 +221,62 @@ router.delete('/users/:id', verifyToken, requireAdmin, async (req, res) => {
   await pool.query('INSERT INTO audit_logs (user_id, username, action, table_name, record_id, detail) VALUES (?, ?, "delete", "users", ?, ?)', [req.user.id, req.user.username, req.params.id, target ? `Xóa tài khoản ${target.username}` : 'Xóa tài khoản']);
   req.app.get('io')?.emit('data_changed', { table: 'users' });
   res.json({ message: 'Đã xóa tài khoản' });
+});
+
+// Đổi mật khẩu của chính tài khoản đang đăng nhập
+router.post('/change-password', verifyToken, async (req, res) => {
+  const { currentPassword, newPassword } = req.body;
+  if (!newPassword || newPassword.length < 6) {
+    return res.status(400).json({ message: 'Mật khẩu mới ít nhất 6 ký tự' });
+  }
+  const [[user]] = await pool.query('SELECT password_hash FROM users WHERE id=?', [req.user.id]);
+  if (!user || !bcrypt.compareSync(currentPassword || '', user.password_hash)) {
+    return res.status(400).json({ message: 'Mật khẩu hiện tại không đúng' });
+  }
+  const hash = bcrypt.hashSync(newPassword, 10);
+  await pool.query('UPDATE users SET password_hash=? WHERE id=?', [hash, req.user.id]);
+  await pool.query('INSERT INTO audit_logs (user_id, username, action, table_name, record_id, detail) VALUES (?, ?, "edit", "users", ?, ?)', [req.user.id, req.user.username, req.user.id, `Đổi mật khẩu tài khoản ${req.user.username}`]);
+  res.json({ message: 'Đã đổi mật khẩu' });
+});
+
+// Quên mật khẩu: gửi mã 6 số về Gmail để đặt lại mật khẩu (mã có hiệu lực 1 phút)
+router.post('/forgot-password', async (req, res) => {
+  const { email } = req.body;
+  const [[user]] = await pool.query('SELECT id FROM users WHERE email=?', [email]);
+  if (!user) return res.status(400).json({ message: 'Gmail này chưa được đăng ký' });
+  const code = makeCode();
+  try {
+    await sendPasswordResetCode(email, code);
+  } catch (e) {
+    console.error('Gửi mail đặt lại mật khẩu thất bại:', e.message);
+    return res.status(500).json({ message: 'Chưa gửi được mã (chưa cấu hình email gửi). Liên hệ admin.' });
+  }
+  await pool.query('UPDATE users SET reset_code=?, reset_expires=DATE_ADD(NOW(), INTERVAL 1 MINUTE) WHERE id=?', [code, user.id]);
+  res.json({ message: 'Mã đặt lại mật khẩu đã gửi vào Gmail của bạn. Mã có hiệu lực trong 1 phút.' });
+});
+
+// Quên mật khẩu bước 2: xác nhận mã đúng + còn hạn mới cho sang bước đặt lại
+// (chỉ kiểm tra, chưa xóa mã — bước đặt lại mật khẩu sẽ kiểm tra lại mã này)
+router.post('/verify-reset-code', async (req, res) => {
+  const { email, code } = req.body;
+  const [[user]] = await pool.query('SELECT id FROM users WHERE email=? AND reset_code=? AND reset_expires > NOW()', [email, String(code).trim()]);
+  if (!user) return res.status(400).json({ message: 'Mã không đúng hoặc đã hết hạn. Bấm "Gửi lại mã" để nhận mã mới.' });
+  res.json({ message: 'Mã đúng. Nhập mật khẩu mới.' });
+});
+
+// Đặt lại mật khẩu bằng mã đã gửi về Gmail (mã đúng + còn hạn mới đổi được;
+// đổi xong là xác thực luôn Gmail vì giữ được mã đã chứng minh chủ sở hữu email)
+router.post('/reset-password', async (req, res) => {
+  const { email, code, newPassword } = req.body;
+  if (!newPassword || newPassword.length < 6) {
+    return res.status(400).json({ message: 'Mật khẩu mới ít nhất 6 ký tự' });
+  }
+  const [[user]] = await pool.query('SELECT id, username FROM users WHERE email=? AND reset_code=? AND reset_expires > NOW()', [email, String(code).trim()]);
+  if (!user) return res.status(400).json({ message: 'Mã không đúng hoặc đã hết hạn. Bấm "Gửi lại mã" để nhận mã mới.' });
+  const hash = bcrypt.hashSync(newPassword, 10);
+  await pool.query('UPDATE users SET password_hash=?, reset_code=NULL, reset_expires=NULL, email_verified=1 WHERE id=?', [hash, user.id]);
+  await pool.query('INSERT INTO audit_logs (user_id, username, action, table_name, record_id, detail) VALUES (?, ?, "edit", "users", ?, ?)', [user.id, user.username, user.id, `Đặt lại mật khẩu tài khoản ${user.username}`]);
+  res.json({ message: 'Đã đặt lại mật khẩu. Đăng nhập bằng mật khẩu mới.' });
 });
 
 module.exports = router;
