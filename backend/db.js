@@ -202,6 +202,12 @@ if (phoneCols.length && phoneCols[0].len < 100) {
     )
   `);
 
+  // Dọn 1 lần các dòng lịch sử đổi/đặt lại mật khẩu cũ: đổi mật khẩu là việc
+  // riêng tư của từng tài khoản nên không hiện trong lịch sử hoạt động nữa.
+  // Từ nay 2 route đổi/đặt lại mật khẩu cũng không ghi audit nữa, nên lệnh
+  // này về sau không còn dòng nào khớp và không làm gì cả.
+  await pool.query(`DELETE FROM audit_logs WHERE detail LIKE 'Đổi mật khẩu tài khoản%' OR detail LIKE 'Đặt lại mật khẩu tài khoản%'`);
+
   // Kho theo tháng: mỗi tháng là 1 kỳ, hết tháng kỳ cũ đóng băng vào lưu trữ,
   // kỳ mới mở ra với tồn đầu kỳ = tồn cuối kỳ cũ, Nhập/Xuất về 0
   await pool.query(`

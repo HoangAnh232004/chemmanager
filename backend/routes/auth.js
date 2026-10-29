@@ -235,7 +235,6 @@ router.post('/change-password', verifyToken, async (req, res) => {
   }
   const hash = bcrypt.hashSync(newPassword, 10);
   await pool.query('UPDATE users SET password_hash=? WHERE id=?', [hash, req.user.id]);
-  await pool.query('INSERT INTO audit_logs (user_id, username, action, table_name, record_id, detail) VALUES (?, ?, "edit", "users", ?, ?)', [req.user.id, req.user.username, req.user.id, `Đổi mật khẩu tài khoản ${req.user.username}`]);
   res.json({ message: 'Đã đổi mật khẩu' });
 });
 
@@ -275,7 +274,6 @@ router.post('/reset-password', async (req, res) => {
   if (!user) return res.status(400).json({ message: 'Mã không đúng hoặc đã hết hạn. Bấm "Gửi lại mã" để nhận mã mới.' });
   const hash = bcrypt.hashSync(newPassword, 10);
   await pool.query('UPDATE users SET password_hash=?, reset_code=NULL, reset_expires=NULL, email_verified=1 WHERE id=?', [hash, user.id]);
-  await pool.query('INSERT INTO audit_logs (user_id, username, action, table_name, record_id, detail) VALUES (?, ?, "edit", "users", ?, ?)', [user.id, user.username, user.id, `Đặt lại mật khẩu tài khoản ${user.username}`]);
   res.json({ message: 'Đã đặt lại mật khẩu. Đăng nhập bằng mật khẩu mới.' });
 });
 
