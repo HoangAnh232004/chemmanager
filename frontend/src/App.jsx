@@ -94,7 +94,8 @@ useEffect(() => {
       <div className="header">
         <div className="header-left">
           <button className="menu-btn" onClick={() => setMenuOpen(true)} title="Mở menu">☰</button>
-          <h1>Quản lý hóa chất</h1>
+          <img className="sidebar-logo" src="/logo.png" alt="KhoManager" />
+          <h1>KhoManager</h1>
           {tab !== 'home' && (
             <button className="home-btn" onClick={() => { setTab('home'); setMenuOpen(false); }} title="Về trang chủ">
               ⌂ <span className="home-btn-label">Trang chủ</span>
@@ -136,9 +137,9 @@ useEffect(() => {
       <div className={`sidebar${menuOpen ? ' open' : ''}`}>
         <div className="sidebar-head">
           <div className="sidebar-brand">
-            <span className="sidebar-logo">Q</span>
+            <img className="sidebar-logo" src="/logo.png" alt="KhoManager" />
             <span>
-              <span className="sidebar-brand-name">Quản lý hóa chất</span>
+              <span className="sidebar-brand-name">KhoManager</span>
               <span className="sidebar-brand-sub">Hệ thống kho</span>
             </span>
           </div>
