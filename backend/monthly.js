@@ -1,7 +1,8 @@
 // Quản lý kho theo tháng: mỗi tháng là 1 kỳ (period dạng 'YYYY-MM').
 // - Kỳ đang mở: Nhập/Xuất cộng dồn từ các thao tác trong tháng, Tồn cuối = tồn thực tế (tính live từ inventory nên luôn khớp kho thật).
-// - Khi sang tháng mới: kỳ cũ tự đóng lại (đóng băng số liệu, không sửa được nữa),
-//   kỳ mới mở ra với tồn đầu kỳ = tồn cuối kỳ cũ, Nhập/Xuất về 0.
+// - KHÔNG tự chốt tháng: sang tháng mới kỳ cũ vẫn mở, mọi Nhập/Xuất vẫn ghi vào kỳ đó.
+//   Chỉ khi admin bấm nút Chốt tháng thì kỳ mới đóng lại (đóng băng số liệu, không sửa
+//   được nữa) và kỳ tháng tiếp theo mới mở ra với tồn đầu kỳ = tồn cuối kỳ cũ, Nhập/Xuất về 0.
 // - Tháng đã đóng là bất biến: mọi hook chỉ chạm vào kỳ đang mở; thao tác thuộc tháng cũ thì bỏ qua.
 const { pool } = require('./db');
 
@@ -102,9 +103,9 @@ async function closePeriod(periodRow) {
   return npRow[0];
 }
 
-// Đảm bảo luôn có kỳ đang mở là kỳ hiện tại: chưa có kỳ nào thì tạo kỳ tháng này
-// (khởi tạo tồn đầu kỳ = tồn thực tế hiện tại); kỳ đang mở đã qua tháng thì đóng lại
-// và mở kỳ tháng này (đóng nhiều tháng liên tiếp nếu web lâu không mở).
+// Đảm bảo luôn có 1 kỳ đang mở: chưa có kỳ nào thì tạo kỳ tháng này
+// (khởi tạo tồn đầu kỳ = tồn thực tế hiện tại). Kỳ đang mở được giữ nguyên cho dù
+// đã sang tháng mới — chỉ nút Chốt tháng (closeCurrentAndOpenNext) mới đóng kỳ.
 async function ensureCurrentPeriod() {
   let open = await getOpenPeriod();
   if (!open) {
@@ -134,15 +135,11 @@ async function ensureCurrentPeriod() {
       }
     }
   }
-  const cur = currentPeriod();
-  while (open.period < cur) {
-    open = await closePeriod(open);
-  }
   return open;
 }
 
-// Chốt tháng thủ công (admin): đóng kỳ đang mở ngay, mở luôn kỳ tháng tiếp theo
-// (kể cả khi hôm nay vẫn còn trong tháng cũ).
+// Chốt tháng thủ công (admin) — cách DUY NHẤT để đóng kỳ: đóng kỳ đang mở ngay,
+// mở luôn kỳ tháng tiếp theo (kể cả khi hôm nay vẫn còn trong tháng cũ).
 async function closeCurrentAndOpenNext() {
   const open = await ensureCurrentPeriod();
   return closePeriod(open);
