@@ -1,0 +1,232 @@
+/* Báo cáo sử dụng nhựa tháng: tông trắng–xanh ngọc như web thật.
+   Nút nền sáng phải đặt màu chữ riêng (theme.css đặt button { color: #fff } toàn cục). */
+.pl-bar {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+  margin-bottom: 12px;
+}
+.pl-period {
+  background: #f0fdfa;
+  border: 1px solid #99f6e4;
+  border-radius: 8px;
+  padding: 6px 12px;
+  font-size: 14px;
+  color: #0b2530;
+}
+.pl-file-btn {
+  background: #f0fdfa;
+  border: 1px solid #99f6e4;
+  border-radius: 8px;
+  padding: 6px 12px;
+  cursor: pointer;
+  font-size: 14px;
+  color: #0f766e;
+}
+.pl-locked {
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+  color: #92400e;
+  padding: 10px 14px;
+  border-radius: 12px;
+  font-size: 14px;
+}
+
+/* Bảng chi tiết: cuộn ngang trong thẻ, cột Ngày dính cố định */
+.pl-detail-wrap {
+  background: #fff;
+  border: 1px solid #cfe8df;
+  border-radius: 16px;
+  padding: 12px;
+  overflow-x: auto;
+}
+table.pl-detail {
+  border-collapse: collapse;
+  font-size: 13px;
+  color: #0b2530;
+}
+.pl-detail th,
+.pl-detail td {
+  padding: 6px 8px;
+  border-top: 1px solid #e5e7eb;
+  text-align: right;
+  white-space: nowrap;
+}
+.pl-detail thead th {
+  background: #f0fdfa;
+  font-size: 12px;
+  font-weight: 700;
+  text-align: center;
+  border-top: none;
+}
+.pl-detail td.pl-sticky {
+  position: sticky;
+  left: 0;
+  background: #fff;
+  font-weight: 600;
+  text-align: left;
+  z-index: 1;
+  border-right: 2px solid #14b8a6;
+}
+.pl-detail td.pl-total {
+  font-weight: 700;
+  background: #f8fafc;
+}
+.pl-detail tr.pl-total-row td {
+  font-weight: 700;
+  border-top: 2px solid #99f6e4;
+  background: #f0fdfa;
+}
+
+/* Ô số kiểu bảng tính */
+.pl-num {
+  width: 72px;
+  border: 1px solid transparent;
+  background: transparent;
+  border-radius: 6px;
+  padding: 4px 6px;
+  font: inherit;
+  font-size: 13px;
+  color: #0b2530;
+  text-align: right;
+}
+.pl-num:hover:not(:disabled) {
+  border-color: #e5e7eb;
+}
+.pl-num:focus {
+  outline: none;
+  border-color: #14b8a6;
+  background: #fff;
+}
+.pl-num:disabled {
+  color: #3f5a66;
+  cursor: default;
+}
+.pl-num::-webkit-outer-spin-button,
+.pl-num::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+/* Các bảng phụ */
+.pl-section {
+  background: #fff;
+  border: 1px solid #cfe8df;
+  border-radius: 16px;
+  padding: 16px;
+  margin-top: 18px;
+  overflow-x: auto;
+}
+.pl-section h3 {
+  margin: 0 0 12px;
+  font-size: 15px;
+  color: #0b2530;
+}
+.pl-section table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+  color: #0b2530;
+}
+.pl-section th,
+.pl-section td {
+  text-align: left;
+  padding: 8px 10px;
+  border-top: 1px solid #e5e7eb;
+  white-space: nowrap;
+}
+.pl-section th {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #3f5a66;
+}
+.pl-section tr.pl-total-row td {
+  font-weight: 700;
+  border-top: 2px solid #99f6e4;
+  background: #f0fdfa;
+}
+.pl-sumlines {
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 14px;
+  color: #0b2530;
+}
+
+@media (max-width: 768px) {
+  .pl-num {
+    width: 56px;
+  }
+}
+
+/* Cố định cột ngày + hàng tiêu đề kiểu freeze panes trong Excel, để tiện kéo.
+   Bảng chi tiết cuộn trong khung 75vh nên cả tiêu đề lẫn cột ngày đều dính.
+   3 hàng tiêu đề cao đúng 30px mỗi hàng nên top dính là 0 / 30px / 60px. */
+.pl-detail-wrap {
+  /* Khung bảng cao theo màn hình (trừ phần đầu trang) thay vì 75vh, để
+     thanh cuộn ngang ở đáy khung lúc nào cũng nằm trong màn hình, khỏi
+     cần kéo trang xuống mới thấy. Dòng 75vh là dự phòng cho trình duyệt cũ. */
+  max-height: 75vh;
+  max-height: calc(100dvh - 260px);
+  overflow: auto;
+}
+.pl-detail thead th {
+  position: sticky;
+  z-index: 2;
+  height: 30px;
+  line-height: 18px;
+  box-sizing: border-box;
+}
+.pl-detail thead tr:nth-child(1) th {
+  top: 0;
+}
+.pl-detail thead tr:nth-child(2) th {
+  top: 30px;
+}
+.pl-detail thead tr:nth-child(3) th {
+  top: 60px;
+}
+.pl-detail thead tr:nth-child(1) th:first-child {
+  left: 0;
+  z-index: 3;
+  border-right: 2px solid #14b8a6;
+}
+.pl-detail thead tr:nth-child(3) th {
+  border-bottom: 2px solid #14b8a6;
+}
+
+/* Các bảng phụ trong tường: tiêu đề dính trên, cột đầu dính trái */
+.pl-section {
+  max-height: 75vh;
+  max-height: calc(100dvh - 260px);
+  overflow: auto;
+}
+.pl-section thead th {
+  position: sticky;
+  top: 0;
+  background: #fff;
+  z-index: 2;
+}
+.pl-section thead th:first-child {
+  left: 0;
+  z-index: 3;
+}
+.pl-section tbody tr:not(.pl-total-row) td:first-child {
+  position: sticky;
+  left: 0;
+  background: #fff;
+  z-index: 1;
+}
+
+/* theme.css đặt overflow: hidden lên mọi table, mà một bảng có overflow khác
+   visible thì position: sticky của các ô trong bảng sẽ chết — cột ngày và
+   tiêu đề vì thế kéo là trôi mất. Trả lại overflow: visible cho bảng nhựa
+   để dính ăn trở lại; khung cuộn (.pl-detail-wrap / .pl-section) vẫn lo
+   việc kéo dọc + kéo ngang của phần ruột bảng. */
+.pl-detail,
+.pl-section table {
+  overflow: visible;
+}

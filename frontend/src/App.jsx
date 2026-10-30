@@ -12,6 +12,7 @@ import Auth from './components/Auth';
 import AdminApprovals from './components/AdminApprovals';
 import ActivityLog from './components/ActivityLog';
 import ImportExcel from './components/ImportExcel';
+import PlasticPage from './components/PlasticPage';
 import Notifications from './components/Notifications';
 import AccountSettings from './components/AccountSettings';
 import { maskEmail } from './utils';
@@ -22,8 +23,9 @@ import socket from './socket';
 
 export default function App() {
   const [tab, setTab] = useState(() => {
-    // Tab cũ 'trace' đã đổi thành 'export': nếu trình duyệt còn nhớ tab cũ thì về trang chủ cho khỏi trắng trang
-    const valid = ['home', 'chemicals', 'suppliers', 'lots', 'inventory', 'archive', 'export', 'import', 'approvals', 'audit'];
+    // Tab cũ 'trace' đã đổi thành 'export', tab cũ 'plastic' đã tách thành 6 tab riêng:
+    // nếu trình duyệt còn nhớ tab cũ thì về trang chủ cho khỏi trắng trang
+    const valid = ['home', 'chemicals', 'suppliers', 'lots', 'inventory', 'archive', 'export', 'import', 'approvals', 'audit', 'plastic-detail', 'plastic-summary', 'plastic-monthend', 'plastic-stock', 'plastic-weekly', 'plastic-archive'];
     // Phân biệt F5 với đóng tab rồi mở lại: sessionStorage còn khi F5, mất khi đóng tab mở tab mới
     const isReload = sessionStorage.getItem('tabAlive') === '1';
     sessionStorage.setItem('tabAlive', '1');
@@ -104,9 +106,15 @@ useEffect(() => {
     ['suppliers', 'Nhà cung cấp'],
     ['lots', 'Mua/nhập'],
     ['inventory', 'Kho'],
-    ['archive', 'Lưu trữ'],
+    ['archive', 'Lưu trữ kho'],
     ['export', 'Xuất kho'],
   ];
+  tabs.push(['plastic-detail', 'Báo cáo nhựa']);
+  tabs.push(['plastic-summary', 'Tổng hợp theo ngày']);
+  tabs.push(['plastic-monthend', 'Tổng kết cuối tháng']);
+  tabs.push(['plastic-stock', 'Tồn theo bộ phận']);
+  tabs.push(['plastic-weekly', 'Xuất kho theo tuần']);
+  tabs.push(['plastic-archive', 'Lưu trữ báo cáo nhựa']);
   if (user.role === 'admin') tabs.push(['import', 'Nhập Excel']);
   if (user.role === 'admin') tabs.push(['approvals', 'Duyệt tài khoản']);
   if (user.role === 'admin') tabs.push(['audit', 'Lịch sử hoạt động']);
@@ -117,6 +125,7 @@ useEffect(() => {
     { title: 'Vận hành kho hằng ngày', keys: ['lots', 'export', 'inventory'] },
     { title: 'Danh mục & nhập liệu', keys: ['chemicals', 'suppliers', 'import'] },
     { title: 'Theo dõi & quản trị', keys: ['archive', 'audit', 'approvals'] },
+    { title: 'Báo cáo nhựa', keys: ['plastic-detail', 'plastic-summary', 'plastic-monthend', 'plastic-stock', 'plastic-weekly', 'plastic-archive'] },
   ];
 
 
@@ -200,7 +209,7 @@ useEffect(() => {
         ))}
       </div>
       <div className="card">
-        {tab === 'home' && <Home signal={signal} user={user} goTab={setTab} />}
+        {tab === 'home' && <Home signal={signal} user={user} goTab={setTab} goKho={goKho} />}
         {tab === 'chemicals' && <Chemicals signal={signal} user={user} />}
         {tab === 'suppliers' && <Suppliers signal={signal} user={user} />}
         {tab === 'lots' && <Lots signal={signal} />}
@@ -210,6 +219,12 @@ useEffect(() => {
         {tab === 'import' && <ImportExcel />}
         {tab === 'approvals' && <AdminApprovals signal={signal} user={user} />}
         {tab === 'audit' && <ActivityLog signal={signal} />}
+        {tab === 'plastic-detail' && <PlasticPage section="detail" signal={signal} user={user} />}
+        {tab === 'plastic-summary' && <PlasticPage section="summary" signal={signal} user={user} />}
+        {tab === 'plastic-monthend' && <PlasticPage section="monthend" signal={signal} user={user} />}
+        {tab === 'plastic-stock' && <PlasticPage section="stock" signal={signal} user={user} />}
+        {tab === 'plastic-weekly' && <PlasticPage section="weekly" signal={signal} user={user} />}
+        {tab === 'plastic-archive' && <PlasticPage section="archive" signal={signal} user={user} />}
 
 
       </div>

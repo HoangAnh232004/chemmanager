@@ -14,6 +14,7 @@ const authRouter = require('./routes/auth');
 const auditRouter = require('./routes/audit');
 const importRouter = require('./routes/import');
 const monthlyRouter = require('./routes/monthly');
+const plasticRouter = require('./routes/plastic');
 
 const app = express();
 const server = http.createServer(app);
@@ -38,6 +39,7 @@ app.use('/api/auth', authRouter);
 app.use('/api/audit', auditRouter);
 app.use('/api/import', auditLogger, importRouter);
 app.use('/api/monthly', verifyToken, auditLogger, monthlyRouter);
+app.use('/api/plastic', verifyToken, auditLogger, plasticRouter);
 
 initDb().then(() => {
   server.listen(process.env.PORT || 5000, () => console.log('Server chạy ở port ' + (process.env.PORT || 5000)));

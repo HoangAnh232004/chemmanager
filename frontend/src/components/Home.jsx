@@ -19,23 +19,25 @@ function Icon({ tone, children }) {
   );
 }
 
-export default function Home({ signal, user, goTab }) {
+export default function Home({ signal, user, goTab, goKho }) {
   const [chemicals, setChemicals] = useState([]);
   const [inventory, setInventory] = useState([]);
   const [lots, setLots] = useState([]);
   const [exports, setExports] = useState([]);
   const [pending, setPending] = useState([]);
+  const [monthly, setMonthly] = useState(null);
   const isAdmin = user?.role === 'admin';
 
   const load = async () => {
-    const [c, i, l, e, p] = await Promise.all([
+    const [c, i, l, e, p, m] = await Promise.all([
       api.get('/chemicals').catch(() => ({ data: [] })),
       api.get('/inventory').catch(() => ({ data: [] })),
       api.get('/lots').catch(() => ({ data: [] })),
       api.get('/lots/exports').catch(() => ({ data: [] })),
       isAdmin ? api.get('/auth/pending').catch(() => ({ data: [] })) : Promise.resolve({ data: [] }),
+      api.get('/monthly/current').catch(() => ({ data: null })),
     ]);
-    setChemicals(c.data); setInventory(i.data); setLots(l.data); setExports(e.data); setPending(p.data);
+    setChemicals(c.data); setInventory(i.data); setLots(l.data); setExports(e.data); setPending(p.data); setMonthly(m.data);
   };
 
   useEffect(() => { load(); }, [signal]);
@@ -55,7 +57,7 @@ export default function Home({ signal, user, goTab }) {
     const total = totals[name];
     const minStock = Number(chemInfo[name]?.min_stock) || 0;
     const status = total === 0 ? 'Hết hàng' : (total <= minStock * 1.2 ? 'Đặt hàng' : '');
-    return { name, total, status };
+    return { name, total, status, min: minStock };
   }).filter((a) => a.status).sort((a, b) => rank[a.status] - rank[b.status]);
 
   // Nhập / xuất trong ngày (ngày trên máy): nhập = lot có Ngày nhập hôm nay, xuất = lần xuất hôm nay.
@@ -116,12 +118,7 @@ export default function Home({ signal, user, goTab }) {
         <section className="hm-group">
           <h3>Theo dõi &amp; quản trị</h3>
           <div className="hm-tiles">
-            <button type="button" className="hm-tile" onClick={() => goTab('inventory')}>
-              <Icon tone="red"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" /><path d="M12 9v4" /><path d="M12 17h.01" /></Icon>
-              <b>Cảnh báo tồn kho</b><small>{alerts.length ? `${alerts.length} mục cần chú ý ngay` : 'Kho đang ổn định'}</small>
-              {alerts.length > 0 && <span className="hm-badge">{alerts.length}</span>}
-            </button>
-            <button type="button" className="hm-tile" onClick={() => goTab('archive')}><Icon><path d="M12 20V10" /><path d="M18 20V4" /><path d="M6 20v-6" /></Icon><b>Báo cáo &amp; Lưu trữ</b><small>Xuất PDF tồn kho tháng</small></button>
+            <button type="button" className="hm-tile" onClick={() => goTab('archive')}><Icon><path d="M12 20V10" /><path d="M18 20V4" /><path d="M6 20v-6" /></Icon><b>Lưu trữ kho</b><small>Xuất PDF tồn kho tháng</small></button>
             {isAdmin && (
               <button type="button" className="hm-tile" onClick={() => goTab('audit')}><Icon><circle cx="12" cy="12" r="10" /><path d="M12 6v6l4 2" /></Icon><b>Lịch sử hoạt động</b><small>Xem ai đã làm gì</small></button>
             )}
@@ -132,6 +129,18 @@ export default function Home({ signal, user, goTab }) {
                 {pending.length > 0 && <span className="hm-badge">{pending.length}</span>}
               </button>
             )}
+          </div>
+        </section>
+
+        <section className="hm-group">
+          <h3>Báo cáo nhựa</h3>
+          <div className="hm-tiles">
+            <button type="button" className="hm-tile" onClick={() => goTab('plastic-detail')}><Icon><rect x="3" y="4" width="18" height="16" rx="2" /><path d="M3 9h18M3 15h18M9 9v11" /></Icon><b>Báo cáo nhựa</b><small>Chi tiết sử dụng theo ngày</small></button>
+            <button type="button" className="hm-tile" onClick={() => goTab('plastic-summary')}><Icon><rect x="3" y="4" width="18" height="18" rx="2" /><path d="M16 2v4M8 2v4M3 10h18" /></Icon><b>Tổng hợp theo ngày</b><small>NL1, NL2, sample từng ngày</small></button>
+            <button type="button" className="hm-tile" onClick={() => goTab('plastic-monthend')}><Icon><path d="M12 20V10" /><path d="M18 20V4" /><path d="M6 20v-6" /></Icon><b>Tổng kết cuối tháng</b><small>Theo từng mã NL1, NL2</small></button>
+            <button type="button" className="hm-tile" onClick={() => goTab('plastic-stock')}><Icon><path d="M21 8l-9-5-9 5v8l9 5 9-5V8z" /><path d="M3 8l9 5 9-5" /><path d="M12 13v8" /></Icon><b>Tồn theo bộ phận</b><small>Tồn đầu, nhập, sử dụng, còn lại</small></button>
+            <button type="button" className="hm-tile" onClick={() => goTab('plastic-weekly')}><Icon><rect x="3" y="4" width="18" height="18" rx="2" /><path d="M16 2v4M8 2v4M3 10h18" /><path d="M9 15h6" /></Icon><b>Xuất kho theo tuần</b><small>Tuần 1–4 theo từng mã</small></button>
+            <button type="button" className="hm-tile" onClick={() => goTab('plastic-archive')}><Icon><rect x="3" y="4" width="18" height="5" rx="1" /><path d="M5 9v10a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V9" /><path d="M10 13h4" /></Icon><b>Lưu trữ báo cáo nhựa</b><small>Các tháng đã chốt</small></button>
           </div>
         </section>
       </div>
