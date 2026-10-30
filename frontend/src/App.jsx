@@ -1,4 +1,4 @@
-import { useState, Fragment } from 'react';
+import { useState, useEffect, useRef, Fragment } from 'react';
 import './App.css';
 import './theme.css';
 import Chemicals from './components/Chemicals';
@@ -17,7 +17,6 @@ import Notifications from './components/Notifications';
 import AccountSettings from './components/AccountSettings';
 import { maskEmail } from './utils';
 import './components/loading.css';
-import { useEffect } from 'react';
 import socket from './socket';
 
 
@@ -52,6 +51,17 @@ useEffect(() => {
   // Hóa chất cần nhảy tới ở tab Kho khi bấm "Xem ở tab Kho" trong bảng nổi thông báo
   const [khoHighlight, setKhoHighlight] = useState(null);
   const goKho = (name) => { setKhoHighlight(name); setTab('inventory'); };
+  // Giữ vị trí lướt của trang chủ: đang ở trang chủ thì lưu vị trí lướt của
+  // .card, quay lại trang chủ thì trả về đúng vị trí đó thay vì về đầu trang.
+  const cardRef = useRef(null);
+  const homeScrollRef = useRef(0);
+  const tabRef = useRef(tab);
+  tabRef.current = tab;
+  useEffect(() => {
+    if (tab === 'home' && cardRef.current) {
+      cardRef.current.scrollTop = homeScrollRef.current;
+    }
+  }, [tab]);
   const [menuOpen, setMenuOpen] = useState(false);
   const [accountOpen, setAccountOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -208,7 +218,7 @@ useEffect(() => {
           </Fragment>
         ))}
       </div>
-      <div className="card">
+      <div className="card" ref={cardRef} onScroll={(e) => { if (tabRef.current === 'home') homeScrollRef.current = e.currentTarget.scrollTop; }}>
         {tab === 'home' && <Home signal={signal} user={user} goTab={setTab} goKho={goKho} />}
         {tab === 'chemicals' && <Chemicals signal={signal} user={user} />}
         {tab === 'suppliers' && <Suppliers signal={signal} user={user} />}

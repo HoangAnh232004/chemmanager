@@ -157,7 +157,6 @@ export default function Inventory({ signal, user, highlightChemical, onHighlight
           </button>
         )}
       </div>
-      <p className="page-note">Hết tháng, file tháng cũ tự chuyển vào tab Lưu trữ, tab Kho hiện file tháng mới (tồn đầu kỳ = tồn cuối tháng cũ, Nhập/Xuất về 0).</p>
       <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
         <input placeholder="Tìm theo tên hóa chất..." value={search} onChange={(e) => { setSearch(e.target.value); setPage(1); }} className="search-box" />
         <button onClick={exportPDF} disabled={exporting}>{exporting ? 'Đang tạo...' : 'Xuất PDF'}</button>

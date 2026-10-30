@@ -49,7 +49,6 @@ export default function Qc({ signal }) {
     <>
       <div className="tab-scroll">
       <h2>Phiếu QC</h2>
-      <p className="page-note">Tab QC hiện không hiển thị lot nào (cả lot nhập tay và lot từ file Excel đều không hiện ở đây).</p>
       <input placeholder="Tìm theo mã lot..." value={search} onChange={(e) => { setSearch(e.target.value); setPage(1); }} className="search-box" />
       <table>
         <thead><tr><th>STT</th><th>Mã lot</th><th>Trạng thái</th><th>Kết quả</th><th>Người kiểm</th><th></th></tr></thead>

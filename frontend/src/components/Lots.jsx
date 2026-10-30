@@ -207,7 +207,6 @@ export default function Lots({ signal }) {
         {editingId && <button type="button" className="btn-secondary" onClick={cancelEdit}>Hủy</button>}
       </form>
       {message && <p>{message}</p>}
-      <p className="page-note">Chỉ hiện lot nhập tay. Lot nhập từ file Excel xem ở tab Kho.</p>
       <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start', flexWrap: 'wrap' }}>
         <input placeholder="Tìm theo mã lot, tên hóa chất hoặc NCC..." value={search} onChange={(e) => { setSearch(e.target.value); setPage(1); }} className="search-box" />
         <select value={monthFilter} onChange={(e) => { const v = e.target.value; setMonthFilter(v); if (dayFilter && v && dayFilter.slice(0, 7) !== v) setDayFilter(''); setPage(1); }} style={{ padding: '7px 10px', border: '1px solid #cbd5e1', borderRadius: 8, background: '#fff' }} title="Lọc theo tháng">

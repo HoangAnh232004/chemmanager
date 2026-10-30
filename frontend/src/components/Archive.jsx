@@ -72,10 +72,7 @@ export default function Archive({ signal }) {
     <>
       <div className="tab-scroll">
       <h2>Lưu trữ kho theo tháng</h2>
-      <p className="page-note">Các tháng đã chốt, số liệu không sửa được. Chọn tháng để xem lại file kho tháng đó.</p>
-      {periods.length === 0 ? (
-        <p className="page-note">Chưa có tháng nào được lưu trữ. Hết tháng, file tháng cũ sẽ tự chuyển vào đây.</p>
-      ) : (
+      {periods.length > 0 && (
         <>
         <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start', flexWrap: 'wrap' }}>
           <select value={selected} onChange={(e) => setSelected(e.target.value)} style={{ padding: '7px 10px', border: '1px solid #cbd5e1', borderRadius: 8, background: '#fff' }}>
