@@ -134,7 +134,7 @@ useEffect(() => {
           )}
         </div>
         <div className="header-right">
-          <Notifications user={user} signal={signal} goKho={goKho} />
+          <Notifications user={user} signal={signal} goTab={setTab} goKho={goKho} />
           <div className="account-wrap">
           <button className="account-btn" onClick={() => setAccountOpen((v) => !v)} title="Tài khoản">
             <span className="account-avatar">{user.username?.[0]?.toUpperCase()}</span>
