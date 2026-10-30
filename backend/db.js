@@ -1,11 +1,21 @@
 const mysql = require('mysql2/promise');
 require('dotenv').config();
 
+// TiDB Cloud bắt buộc kết nối SSL (TLS), còn MySQL local thì không cần —
+// bật SSL khi host không phải localhost để cùng 1 file chạy được cả 2 nơi.
+// Cổng mặc định: local 3306, lên cloud 4000 (đổi được bằng DB_PORT).
+const dbHost = process.env.DB_HOST || 'localhost';
+const isLocalDb = dbHost === 'localhost' || dbHost === '127.0.0.1';
+const dbPort = process.env.DB_PORT ? Number(process.env.DB_PORT) : (isLocalDb ? 3306 : 4000);
+const dbSsl = isLocalDb ? undefined : { minVersion: 'TLSv1.2', rejectUnauthorized: false };
+
 const pool = mysql.createPool({
-  host: process.env.DB_HOST || 'localhost',
+  host: dbHost,
+  port: dbPort,
   user: process.env.DB_USER || 'root',
   password: process.env.DB_PASSWORD || '',
   database: 'chem_manager',
+  ssl: dbSsl,
   // Trả ngày/giờ dạng chuỗi 'YYYY-MM-DD' thay vì đối tượng Date (driver tự đổi sang giờ UTC
   // làm frontend cắt chuỗi bị lùi 1 ngày: nhập 27 hiện 26 ở cả Mua/nhập, Xuất kho và Hạn dùng trong Kho)
   dateStrings: true,
@@ -24,9 +34,11 @@ async function addColumnIfMissing(table, column, definition) {
 async function initDb() {
   // Tạo database trước bằng kết nối tạm (vì pool chính đã gắn database)
   const tmp = await mysql.createConnection({
-    host: process.env.DB_HOST || 'localhost',
+    host: dbHost,
+    port: dbPort,
     user: process.env.DB_USER || 'root',
     password: process.env.DB_PASSWORD || '',
+    ssl: dbSsl,
   });
   await tmp.query(`CREATE DATABASE IF NOT EXISTS chem_manager`);
   await tmp.end();
