@@ -27,6 +27,8 @@ export default function Inventory({ signal, user, highlightChemical, onHighlight
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
   const [confirm, setConfirm] = useState(null);
+  const [editing, setEditing] = useState(null);
+  const [editForm, setEditForm] = useState({ korean_name: '', packaging: '', min_stock: '', order_qty: '', closing: '' });
   const [exporting, setExporting] = useState(false);
   const [now, setNow] = useState(new Date());
   const [loaded, setLoaded] = useState(false);
@@ -120,6 +122,49 @@ export default function Inventory({ signal, user, highlightChemical, onHighlight
     }
   };
 
+  // Sửa thông tin hóa chất của dòng đang chọn (tên Hàn, quy cách, tối thiểu,
+  // tối đa, tồn): bấm Sửa thì đưa dữ liệu lên form, bấm Lưu là xong
+  const startEdit = (r) => {
+    if (!r.chemical_id) return;
+    setEditing({ chemical_id: r.chemical_id, chemical_name: r.chemical_name });
+    setEditForm({
+      korean_name: r.korean_name || '',
+      packaging: r.packaging || '',
+      min_stock: r.minStock ? String(r.minStock) : '',
+      order_qty: r.maxStock ? String(r.maxStock) : '',
+      closing: String(r.closing),
+    });
+  };
+
+  const cancelEdit = () => setEditing(null);
+
+  const saveEdit = async (e) => {
+    e.preventDefault();
+    if (!editing) return;
+    try {
+      await api.put(`/monthly/chemical/${editing.chemical_id}`, editForm);
+      setEditing(null);
+      load();
+    } catch (err) {
+      alert(err.response?.data?.message || 'Sửa thất bại');
+    }
+  };
+
+  // Xóa dòng ở tab Kho: có trong danh mục thì xóa hẳn hóa chất khỏi hệ thống,
+  // chưa có trong danh mục thì chỉ xóa dòng tháng của nó
+  const deleteRow = async (r) => {
+    try {
+      if (r.chemical_id) {
+        await api.delete(`/monthly/chemical/${r.chemical_id}`);
+      } else {
+        await api.delete(`/monthly/row/${encodeURIComponent(r.chemical_name)}`);
+      }
+      load();
+    } catch (err) {
+      alert(err.response?.data?.message || 'Xóa thất bại');
+    }
+  };
+
   const exportPDF = async () => {
     setExporting(true);
     try {
@@ -161,8 +206,20 @@ export default function Inventory({ signal, user, highlightChemical, onHighlight
         <input placeholder="Tìm theo tên hóa chất..." value={search} onChange={(e) => { setSearch(e.target.value); setPage(1); }} className="search-box" />
         <button onClick={exportPDF} disabled={exporting}>{exporting ? 'Đang tạo...' : 'Xuất PDF'}</button>
       </div>
+      {editing && (
+        <form onSubmit={saveEdit} className="form-row">
+          <b>Sửa hóa chất: {editing.chemical_name}</b>
+          <input placeholder="Tên Hàn" value={editForm.korean_name} onChange={(e) => setEditForm({ ...editForm, korean_name: e.target.value })} />
+          <input placeholder="Quy cách" value={editForm.packaging} onChange={(e) => setEditForm({ ...editForm, packaging: e.target.value })} />
+          <input type="number" step="any" placeholder="Tối thiểu" value={editForm.min_stock} onChange={(e) => setEditForm({ ...editForm, min_stock: e.target.value })} />
+          <input type="number" step="any" placeholder="Tối đa" value={editForm.order_qty} onChange={(e) => setEditForm({ ...editForm, order_qty: e.target.value })} />
+          <input type="number" step="any" placeholder="Tồn" value={editForm.closing} onChange={(e) => setEditForm({ ...editForm, closing: e.target.value })} />
+          <button type="submit">Lưu</button>
+          <button type="button" className="btn-secondary" onClick={cancelEdit}>Hủy</button>
+        </form>
+      )}
       <table>
-        <thead><tr><th>STT</th><th>Tên hóa chất</th><th>Tên Hàn</th><th>NCC</th><th>Hạn dùng</th><th>Quy cách</th><th>Tồn đầu kỳ</th><th>Tối thiểu</th><th>Tối đa</th><th>Nhập</th><th>Xuất</th><th>Tồn</th><th>Trạng thái</th><th>Ghi chú</th></tr></thead>
+        <thead><tr><th>STT</th><th>Tên hóa chất</th><th>Tên Hàn</th><th>NCC</th><th>Hạn dùng</th><th>Quy cách</th><th>Tồn đầu kỳ</th><th>Tối thiểu</th><th>Tối đa</th><th>Nhập</th><th>Xuất</th><th>Tồn</th><th>Trạng thái</th><th>Ghi chú</th><th>Thao tác</th></tr></thead>
         <tbody>
           {pageItems.map((r, idx) => (
             <tr key={r.chemical_name}
@@ -185,6 +242,15 @@ export default function Inventory({ signal, user, highlightChemical, onHighlight
                   <option value="Đã đặt">Đã đặt</option>
                 </select>
               </td>
+              <td>
+                <button type="button" onClick={() => startEdit(r)} disabled={!r.chemical_id} title={r.chemical_id ? 'Sửa tên Hàn, quy cách, tối thiểu, tối đa, tồn' : 'Hóa chất chưa có trong danh mục nên không sửa được'}>Sửa</button>
+                {' '}
+                {user?.role === 'admin' && (
+                  <button type="button" onClick={() => setConfirm(r.chemical_id
+                    ? { title: 'Xóa hẳn hóa chất này?', message: `${r.chemical_name} sẽ bị xóa hẳn khỏi hệ thống: toàn bộ lot, tồn kho, phiếu QC, lịch sử di chuyển và dòng tháng của nó (kể cả các tháng đã chốt) đều bị xóa. Hành động này không khôi phục được.`, confirmText: 'Xóa hẳn', action: () => deleteRow(r) }
+                    : { title: 'Xóa dòng này?', message: `${r.chemical_name} chưa có trong danh mục nên chỉ xóa dòng tháng của nó khỏi các kỳ. Hành động này không khôi phục được.`, confirmText: 'Xóa dòng', action: () => deleteRow(r) })}>Xóa</button>
+                )}
+              </td>
             </tr>
           ))}
         </tbody>
@@ -205,3 +271,4 @@ export default function Inventory({ signal, user, highlightChemical, onHighlight
     </>
   );
 }
+    
