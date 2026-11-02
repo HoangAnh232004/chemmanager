@@ -94,9 +94,9 @@ async function closePeriod(periodRow) {
   for (const r of closedRows) {
     const info = chemByName.get(r.chemical_name) || {};
     await pool.query(
-      `INSERT INTO monthly_rows (period_id, chemical_id, chemical_name, korean_name, supplier_name, packaging, min_stock, order_qty, opening_stock, manual_in, excel_in, stock_out)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, 0)`,
-      [newId, r.chemical_id, r.chemical_name, info.korean_name || r.korean_name || null, r.supplier_name || null, info.packaging || r.packaging || null, info.min_stock != null ? info.min_stock : r.min_stock, info.order_qty != null ? info.order_qty : r.order_qty, r.closing_stock]
+      `INSERT INTO monthly_rows (period_id, chemical_id, chemical_name, korean_name, supplier_name, packaging, min_stock, order_qty, opening_stock, manual_in, excel_in, stock_out, sort_order)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, 0, ?)`,
+      [newId, r.chemical_id, r.chemical_name, info.korean_name || r.korean_name || null, r.supplier_name || null, info.packaging || r.packaging || null, info.min_stock != null ? info.min_stock : r.min_stock, info.order_qty != null ? info.order_qty : r.order_qty, r.closing_stock, r.sort_order]
     );
   }
   const [npRow] = await pool.query(`SELECT * FROM monthly_periods WHERE id = ?`, [newId]);
@@ -164,40 +164,42 @@ async function findChemId(chemicalName, info) {
 }
 
 // Cộng dồn vào dòng tháng của 1 hóa chất (chỉ gọi cho kỳ đang mở)
-async function adjustRow(periodId, chemicalName, { manualIn = 0, excelIn = 0, out = 0, info = null } = {}) {
+async function adjustRow(periodId, chemicalName, { manualIn = 0, excelIn = 0, out = 0, info = null, sortOrder = null } = {}) {
   const [rows] = await pool.query(`SELECT id FROM monthly_rows WHERE period_id = ? AND chemical_name = ?`, [periodId, chemicalName]);
   if (!rows.length) {
     const chemical_id = await findChemId(chemicalName, info);
     await pool.query(
-      `INSERT INTO monthly_rows (period_id, chemical_id, chemical_name, korean_name, supplier_name, packaging, min_stock, order_qty, opening_stock, manual_in, excel_in, stock_out)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?)`,
-      [periodId, chemical_id, chemicalName, info?.korean_name || null, info?.supplier_name || null, info?.packaging || null, info?.min_stock || 0, info?.order_qty || 0, manualIn, excelIn, out]
+      `INSERT INTO monthly_rows (period_id, chemical_id, chemical_name, korean_name, supplier_name, packaging, min_stock, order_qty, opening_stock, manual_in, excel_in, stock_out, sort_order)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?, ?)`,
+      [periodId, chemical_id, chemicalName, info?.korean_name || null, info?.supplier_name || null, info?.packaging || null, info?.min_stock || 0, info?.order_qty || 0, manualIn, excelIn, out, sortOrder]
     );
     return;
   }
   const { sets, params } = infoSets(info);
   sets.unshift('manual_in = manual_in + ?', 'excel_in = excel_in + ?', 'stock_out = stock_out + ?');
   params.unshift(manualIn, excelIn, out);
+  if (sortOrder != null) { sets.push('sort_order = ?'); params.push(sortOrder); }
   params.push(rows[0].id);
   await pool.query(`UPDATE monthly_rows SET ${sets.join(', ')} WHERE id = ?`, params);
 }
 
 // Nhập file tồn kho: Nhập Excel của tháng = đúng số STOCK IN trong file (ghi đè, không cộng dồn),
 // nhập lại file sửa sai trong cùng tháng vẫn đúng số.
-async function setImportRow(periodId, chemicalName, stockIn, info = null) {
+async function setImportRow(periodId, chemicalName, stockIn, info = null, sortOrder = null) {
   const [rows] = await pool.query(`SELECT id FROM monthly_rows WHERE period_id = ? AND chemical_name = ?`, [periodId, chemicalName]);
   if (!rows.length) {
     const chemical_id = await findChemId(chemicalName, info);
     await pool.query(
-      `INSERT INTO monthly_rows (period_id, chemical_id, chemical_name, korean_name, supplier_name, packaging, min_stock, order_qty, opening_stock, manual_in, excel_in, stock_out)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, 0, ?, 0)`,
-      [periodId, chemical_id, chemicalName, info?.korean_name || null, info?.supplier_name || null, info?.packaging || null, info?.min_stock || 0, info?.order_qty || 0, stockIn]
+      `INSERT INTO monthly_rows (period_id, chemical_id, chemical_name, korean_name, supplier_name, packaging, min_stock, order_qty, opening_stock, manual_in, excel_in, stock_out, sort_order)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, 0, ?, 0, ?)`,
+      [periodId, chemical_id, chemicalName, info?.korean_name || null, info?.supplier_name || null, info?.packaging || null, info?.min_stock || 0, info?.order_qty || 0, stockIn, sortOrder]
     );
     return;
   }
   const { sets, params } = infoSets(info);
   sets.unshift('excel_in = ?');
   params.unshift(stockIn);
+  if (sortOrder != null) { sets.push('sort_order = ?'); params.push(sortOrder); }
   params.push(rows[0].id);
   await pool.query(`UPDATE monthly_rows SET ${sets.join(', ')} WHERE id = ?`, params);
 }
@@ -223,7 +225,17 @@ function shapeRow(r, live) {
     closing: live ? live.total : num(r.closing_stock),
     expiry: live ? (live.expiry_date || '') : (r.expiry_date || ''),
     order_note: r.order_note || '',
+    sort_order: r.sort_order == null ? null : num(r.sort_order),
   };
+}
+
+// Thứ tự hiển thị: theo thứ tự file Excel (sort_order) trước, hóa chất chưa có
+// thứ tự Excel (nhập tay, dữ liệu cũ) xếp sau, sắp theo tên.
+function byExcelOrder(a, b) {
+  const ao = a.sort_order == null ? Infinity : a.sort_order;
+  const bo = b.sort_order == null ? Infinity : b.sort_order;
+  if (ao !== bo) return ao - bo;
+  return (a.chemical_name || '').localeCompare(b.chemical_name || '');
 }
 
 // Kỳ đang mở: thông tin hóa chất + NCC + hạn dùng lấy live cho khớp tab Kho cũ,
@@ -255,7 +267,7 @@ async function getCurrentView() {
     const info = chemByName.get(name) || {};
     out.push(shapeRow({ chemical_id: info.id || null, chemical_name: name, korean_name: info.korean_name || '', supplier_name: lv.supplier_name || '', packaging: info.packaging || '', min_stock: info.min_stock || 0, order_qty: info.order_qty || 0, opening_stock: 0, manual_in: 0, excel_in: 0, stock_out: 0, order_note: info.order_note || '' }, lv));
   }
-  out.sort((a, b) => (a.chemical_name || '').localeCompare(b.chemical_name || ''));
+  out.sort(byExcelOrder);
   return { period: period.period, periodLabel: labelOf(period.period), rows: out };
 }
 
@@ -265,7 +277,9 @@ async function getArchivedView(periodStr) {
   if (!p.length) return null;
   if (p[0].status === 'open') return getCurrentView();
   const [rows] = await pool.query(`SELECT * FROM monthly_rows WHERE period_id = ? ORDER BY chemical_name`, [p[0].id]);
-  return { period: p[0].period, periodLabel: labelOf(p[0].period), closed_at: p[0].closed_at, rows: rows.map((r) => shapeRow(r, null)) };
+  const out = rows.map((r) => shapeRow(r, null));
+  out.sort(byExcelOrder);
+  return { period: p[0].period, periodLabel: labelOf(p[0].period), closed_at: p[0].closed_at, rows: out };
 }
 
 async function getPeriods() {

@@ -401,7 +401,9 @@ router.post('/inventory', verifyToken, requireAdmin, upload.single('file'), asyn
       const BLOCKED_NAMES = ['TOTAL', 'TONG', 'TONGCONG'];
       let inserted = 0, updated = 0, skipped = 0, chemCreated = 0, supCreated = 0;
       const errors = [];
+      let stockOrder = 0;
       for (const row of stockRows) {
+        stockOrder++;
         try {
           const chemName = cleanName(row.chemical_name);
           if (!chemName || BLOCKED_NAMES.includes(normName(chemName))) { skipped++; continue; }
@@ -476,7 +478,7 @@ router.post('/inventory', verifyToken, requireAdmin, upload.single('file'), asyn
                 chemical_id: chem.id, korean_name: chem.korean_name || null,
                 supplier_name: supName || null, packaging: chem.packaging || null,
                 min_stock: chem.min_stock, order_qty: chem.order_qty,
-              });
+              }, stockOrder);
             } catch (me) { console.error('Lỗi ghi kho tháng:', me); }
           }
         } catch (rowErr) {
@@ -525,7 +527,9 @@ router.post('/inventory', verifyToken, requireAdmin, upload.single('file'), asyn
     let openPeriod = null;
     try { openPeriod = await monthly.ensureCurrentPeriod(); } catch (me) { console.error('Lỗi kỳ kho tháng:', me); }
     let inserted = 0, skipped = 0;
+    let fileOrder = 0;
     for (const row of table.rows) {
+      fileOrder++;
       // Bỏ qua hàng trống hoàn toàn, không tính vào số dòng bỏ qua
       const values = Object.values(row);
       if (values.every((v) => v === undefined || v === null || String(v).trim() === '')) continue;
@@ -579,7 +583,7 @@ router.post('/inventory', verifyToken, requireAdmin, upload.single('file'), asyn
       inserted++;
       // Kho tháng: lot mới từ file cộng vào Nhập Excel của kỳ đang mở
       if (openPeriod) {
-        try { await monthly.adjustRow(openPeriod.id, chemical_name, { excelIn: quantity }); }
+        try { await monthly.adjustRow(openPeriod.id, chemical_name, { excelIn: quantity, sortOrder: fileOrder }); }
         catch (me) { console.error('Lỗi ghi kho tháng:', me); }
       }
     }

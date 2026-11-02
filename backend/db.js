@@ -249,10 +249,12 @@ if (phoneCols.length && phoneCols[0].len < 100) {
       stock_out DECIMAL(12,2) DEFAULT 0,
       closing_stock DECIMAL(12,2),
       expiry_date DATE,
+      sort_order INT,
       FOREIGN KEY (period_id) REFERENCES monthly_periods(id),
       UNIQUE KEY uniq_period_chemical (period_id, chemical_name)
     )
   `);
+  await addColumnIfMissing('monthly_rows', 'sort_order', 'INT');
 
   console.log('Database chem_manager đã sẵn sàng');
 }

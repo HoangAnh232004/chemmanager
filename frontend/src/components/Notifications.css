@@ -78,6 +78,25 @@
 .notif-panel-head b {
   font-size: 15px;
 }
+.notif-mark-read {
+  background: none;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  padding: 0;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 400;
+  color: #0f766e;
+  cursor: pointer;
+}
+.notif-mark-read:hover,
+.notif-mark-read:active {
+  background: none;
+  box-shadow: none;
+  transform: none;
+  text-decoration: underline;
+}
 .notif-list {
   max-height: 380px;
   overflow-y: auto;

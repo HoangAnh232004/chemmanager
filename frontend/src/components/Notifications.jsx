@@ -7,9 +7,14 @@ import './Notifications.css';
 // Huy hiệu = số thông báo chưa xem; bấm vào 1 thông báo thì đi thẳng tới
 // đúng chỗ của nó (báo tồn → tab Kho đúng hóa chất đó, chờ duyệt → tab
 // Duyệt tài khoản) và tính là đã đọc nên huy hiệu trừ đi 1.
+// Chữ "Đánh dấu đã đọc" luôn hiện ở đầu bảng, bấm là đọc hết 1 lần.
+// Thứ tự bảng: thông báo mới (chưa đọc) lên đầu, còn lại xếp theo mức độ
+// (Hết hàng trước Đặt hàng, chờ duyệt mới đăng ký trước).
 // Chuông vẽ bằng SVG cho nét, khớp tông xanh ngọc của web (không dùng emoji).
 
 const SEEN_KEY = 'notifSeen';
+// Thứ tự loại trong cùng nhóm đọc: Hết hàng trước Đặt hàng, chờ duyệt sau cùng.
+const KIND_RANK = { 'Hết hàng': 0, 'Đặt hàng': 1, 'Chờ duyệt': 2 };
 
 function loadSeen() {
   try {
@@ -53,8 +58,6 @@ export default function Notifications({ user, signal, goTab, goKho }) {
         name,
       });
     });
-    const rank = { 'Hết hàng': 0, 'Đặt hàng': 1 };
-    list.sort((a, b) => rank[a.kind] - rank[b.kind]);
     if (isAdmin) {
       const p = await api.get('/auth/pending').catch(() => ({ data: [] }));
       (p.data || []).forEach((u) => {
@@ -64,6 +67,7 @@ export default function Notifications({ user, signal, goTab, goKho }) {
           kind: 'Chờ duyệt',
           title: `Tài khoản chờ duyệt: ${u.username}`,
           detail: d ? `Đăng ký ngày ${d.split('-').reverse().join('/')}` : '',
+          created_at: u.created_at || '',
           tab: 'approvals',
         });
       });
@@ -77,6 +81,19 @@ export default function Notifications({ user, signal, goTab, goKho }) {
 
   const seenSet = new Set(seen);
   const unreadCount = items.filter((it) => !seenSet.has(it.id)).length;
+
+  // Thứ tự hiển thị: thông báo mới (chưa đọc) lên đầu; trong cùng nhóm thì
+  // Hết hàng trước Đặt hàng, chờ duyệt mới đăng ký trước. Xếp lúc hiển thị
+  // (không xếp lúc tải) để bấm đã đọc xong là bảng xếp lại ngay.
+  const sortedItems = [...items].sort((a, b) => {
+    const aSeen = seenSet.has(a.id) ? 1 : 0;
+    const bSeen = seenSet.has(b.id) ? 1 : 0;
+    if (aSeen !== bSeen) return aSeen - bSeen;
+    if (a.kind === 'Chờ duyệt' && b.kind === 'Chờ duyệt') {
+      return (b.created_at || '').localeCompare(a.created_at || '');
+    }
+    return KIND_RANK[a.kind] - KIND_RANK[b.kind];
+  });
 
   const toggleOpen = () => {
     if (!open) {
@@ -102,6 +119,16 @@ export default function Notifications({ user, signal, goTab, goKho }) {
 
   const dotClass = (kind) => kind === 'Hết hàng' ? 'out' : kind === 'Đặt hàng' ? 'order' : 'pending';
 
+  // Chữ "Đánh dấu đã đọc" ở đầu bảng: đánh dấu tất cả thông báo đang hiện
+  // là đã đọc nên huy hiệu về 0, bảng vẫn mở để xem tiếp. Thông báo mới
+  // xuất hiện sau đó (id chưa có trong danh sách đã đọc) vẫn hiện là chưa đọc.
+  const markAllRead = () => {
+    const next = [...seen];
+    items.forEach((it) => { if (!seenSet.has(it.id)) next.push(it.id); });
+    setSeen(next);
+    localStorage.setItem(SEEN_KEY, JSON.stringify(next));
+  };
+
   return (
     <div className="notif-wrap">
       <button className="notif-btn" onClick={toggleOpen} title="Thông báo">
@@ -119,12 +146,13 @@ export default function Notifications({ user, signal, goTab, goKho }) {
           <div className="notif-panel">
             <div className="notif-panel-head">
               <b>Thông báo</b>
+              <button type="button" className="notif-mark-read" onClick={markAllRead}>Đánh dấu đã đọc</button>
             </div>
             {items.length === 0 ? (
               <div className="notif-empty">Không có thông báo mới.</div>
             ) : (
               <div className="notif-list">
-                {items.map((it) => (
+                {sortedItems.map((it) => (
                   <button
                     key={it.id}
                     className={seenSet.has(it.id) ? 'notif-item' : 'notif-item unread'}
