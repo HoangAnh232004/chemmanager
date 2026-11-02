@@ -8,13 +8,24 @@ import './Notifications.css';
 // đúng chỗ của nó (báo tồn → tab Kho đúng hóa chất đó, chờ duyệt → tab
 // Duyệt tài khoản) và tính là đã đọc nên huy hiệu trừ đi 1.
 // Chữ "Đánh dấu đã đọc" luôn hiện ở đầu bảng, bấm là đọc hết 1 lần.
-// Thứ tự bảng: thông báo mới (chưa đọc) lên đầu, còn lại xếp theo mức độ
-// (Hết hàng trước Đặt hàng, chờ duyệt mới đăng ký trước).
+// Vị trí trong bảng KHÔNG đổi theo đã đọc hay chưa: chỉ thông báo mới xuất
+// hiện lần đầu mới lên đầu bảng, thông báo đã có giữ nguyên vị trí ban đầu.
+// Thứ tự này lưu ở localStorage (notifOrder) nên F5 vẫn giữ nguyên.
 // Chuông vẽ bằng SVG cho nét, khớp tông xanh ngọc của web (không dùng emoji).
 
 const SEEN_KEY = 'notifSeen';
+const ORDER_KEY = 'notifOrder';
 // Thứ tự loại trong cùng nhóm đọc: Hết hàng trước Đặt hàng, chờ duyệt sau cùng.
 const KIND_RANK = { 'Hết hàng': 0, 'Đặt hàng': 1, 'Chờ duyệt': 2 };
+
+function loadOrder() {
+  try {
+    const v = JSON.parse(localStorage.getItem(ORDER_KEY) || '[]');
+    return Array.isArray(v) ? v : [];
+  } catch {
+    return [];
+  }
+}
 
 function loadSeen() {
   try {
@@ -28,38 +39,33 @@ export default function Notifications({ user, signal, goTab, goKho }) {
   const [open, setOpen] = useState(false);
   const [items, setItems] = useState([]);
   const [seen, setSeen] = useState(loadSeen);
+  const [order, setOrder] = useState(loadOrder);
   const isAdmin = user?.role === 'admin';
 
   const load = async () => {
-    const [c, i] = await Promise.all([
-      api.get('/chemicals').catch(() => ({ data: [] })),
-      api.get('/inventory').catch(() => ({ data: [] })),
+    const [m, p] = await Promise.all([
+      api.get('/monthly/current').catch(() => ({ data: null })),
+      isAdmin ? api.get('/auth/pending').catch(() => ({ data: [] })) : Promise.resolve({ data: [] }),
     ]);
-    const chemInfo = {};
-    (c.data || []).forEach((ch) => { chemInfo[ch.name] = ch; });
-    const totals = {};
-    (i.data || []).forEach((row) => {
-      totals[row.chemical_name] = (totals[row.chemical_name] || 0) + (Number(row.quantity_available) || 0);
-    });
     const list = [];
-    Object.keys(totals).forEach((name) => {
-      const total = totals[name];
-      const min = Number(chemInfo[name]?.min_stock) || 0;
-      // Cùng luật tab Kho: tồn <= 0 → Hết hàng; tồn <= tối thiểu x 1.2 → Đặt hàng
-      // (tối thiểu = 0 mà còn tồn thì không báo)
+    // Cùng luật tab Kho, lấy từ /monthly/current thay vì tải toàn bộ tồn kho:
+    // tồn <= 0 → Hết hàng; tồn <= tối thiểu x 1.2 → Đặt hàng
+    // (tối thiểu = 0 mà còn tồn thì không báo)
+    (m.data?.rows || []).forEach((r) => {
+      const total = Number(r.closing) || 0;
+      const min = Number(r.min_stock) || 0;
       const status = total <= 0 ? 'Hết hàng' : (total <= min * 1.2 ? 'Đặt hàng' : '');
       if (!status) return;
       list.push({
-        id: `stock-${name}-${status}`,
+        id: `stock-${r.chemical_name}-${status}`,
         kind: status,
-        title: `${status}: ${name}`,
+        title: `${status}: ${r.chemical_name}`,
         detail: `Tồn hiện tại: ${Number(total)} kg`,
         tab: 'inventory',
-        name,
+        name: r.chemical_name,
       });
     });
     if (isAdmin) {
-      const p = await api.get('/auth/pending').catch(() => ({ data: [] }));
       (p.data || []).forEach((u) => {
         const d = String(u.created_at || '').slice(0, 10);
         list.push({
@@ -72,6 +78,26 @@ export default function Notifications({ user, signal, goTab, goKho }) {
         });
       });
     }
+    // Thứ tự cơ sở cho những thông báo mới xuất hiện: Hết hàng trước Đặt hàng,
+    // chờ duyệt mới đăng ký trước.
+    list.sort((a, b) => {
+      if (a.kind === 'Chờ duyệt' && b.kind === 'Chờ duyệt') {
+        return (b.created_at || '').localeCompare(a.created_at || '');
+      }
+      return KIND_RANK[a.kind] - KIND_RANK[b.kind];
+    });
+    // Vị trí ổn định: chỉ thông báo mới xuất hiện lần đầu mới lên đầu bảng,
+    // thông báo đã có từ trước giữ nguyên vị trí ban đầu (đọc hay chưa đọc
+    // cũng không nhảy vị trí). Thứ tự này lưu ở localStorage nên F5 vẫn giữ.
+    const prevOrder = loadOrder();
+    const prevSet = new Set(prevOrder);
+    const currentIds = new Set(list.map((it) => it.id));
+    const nextOrder = [
+      ...list.filter((it) => !prevSet.has(it.id)).map((it) => it.id),
+      ...prevOrder.filter((id) => currentIds.has(id)),
+    ];
+    localStorage.setItem(ORDER_KEY, JSON.stringify(nextOrder));
+    setOrder(nextOrder);
     setItems(list);
   };
 
@@ -82,18 +108,9 @@ export default function Notifications({ user, signal, goTab, goKho }) {
   const seenSet = new Set(seen);
   const unreadCount = items.filter((it) => !seenSet.has(it.id)).length;
 
-  // Thứ tự hiển thị: thông báo mới (chưa đọc) lên đầu; trong cùng nhóm thì
-  // Hết hàng trước Đặt hàng, chờ duyệt mới đăng ký trước. Xếp lúc hiển thị
-  // (không xếp lúc tải) để bấm đã đọc xong là bảng xếp lại ngay.
-  const sortedItems = [...items].sort((a, b) => {
-    const aSeen = seenSet.has(a.id) ? 1 : 0;
-    const bSeen = seenSet.has(b.id) ? 1 : 0;
-    if (aSeen !== bSeen) return aSeen - bSeen;
-    if (a.kind === 'Chờ duyệt' && b.kind === 'Chờ duyệt') {
-      return (b.created_at || '').localeCompare(a.created_at || '');
-    }
-    return KIND_RANK[a.kind] - KIND_RANK[b.kind];
-  });
+  // Hiển thị theo thứ tự đã lưu: mới lên đầu, cũ giữ nguyên vị trí.
+  const orderIndex = new Map(order.map((id, i) => [id, i]));
+  const sortedItems = [...items].sort((a, b) => (orderIndex.get(a.id) ?? Infinity) - (orderIndex.get(b.id) ?? Infinity));
 
   const toggleOpen = () => {
     if (!open) {

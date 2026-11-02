@@ -20,8 +20,6 @@ function Icon({ tone, children }) {
 }
 
 export default function Home({ signal, user, goTab, goKho }) {
-  const [chemicals, setChemicals] = useState([]);
-  const [inventory, setInventory] = useState([]);
   const [lots, setLots] = useState([]);
   const [exports, setExports] = useState([]);
   const [pending, setPending] = useState([]);
@@ -29,35 +27,25 @@ export default function Home({ signal, user, goTab, goKho }) {
   const isAdmin = user?.role === 'admin';
 
   const load = async () => {
-    const [c, i, l, e, p, m] = await Promise.all([
-      api.get('/chemicals').catch(() => ({ data: [] })),
-      api.get('/inventory').catch(() => ({ data: [] })),
+    const [l, e, p, m] = await Promise.all([
       api.get('/lots').catch(() => ({ data: [] })),
       api.get('/lots/exports').catch(() => ({ data: [] })),
       isAdmin ? api.get('/auth/pending').catch(() => ({ data: [] })) : Promise.resolve({ data: [] }),
       api.get('/monthly/current').catch(() => ({ data: null })),
     ]);
-    setChemicals(c.data); setInventory(i.data); setLots(l.data); setExports(e.data); setPending(p.data); setMonthly(m.data);
+    setLots(l.data); setExports(e.data); setPending(p.data); setMonthly(m.data);
   };
 
   useEffect(() => { load(); }, [signal]);
 
-  // Tổng tồn theo từng hóa chất
-  const totals = {};
-  inventory.forEach((i) => {
-    totals[i.chemical_name] = (totals[i.chemical_name] || 0) + (Number(i.quantity_available) || 0);
-  });
-
-  // Cảnh báo — đúng luật cột Trạng thái ở tab Kho: tồn = 0 → Hết hàng,
-  // tồn vượt tối thiểu không quá 20% → Đặt hàng, còn lại không vào danh sách này
-  const chemInfo = {};
-  chemicals.forEach((c) => { chemInfo[c.name] = c; });
+  // Cảnh báo — lấy từ tab Kho (/monthly/current) cho khớp đúng cột Trạng thái:
+  // tồn <= 0 → Hết hàng, tồn <= tối thiểu x 1.2 → Đặt hàng, còn lại không báo
   const rank = { 'Hết hàng': 0, 'Đặt hàng': 1 };
-  const alerts = Object.keys(totals).map((name) => {
-    const total = totals[name];
-    const minStock = Number(chemInfo[name]?.min_stock) || 0;
-    const status = total === 0 ? 'Hết hàng' : (total <= minStock * 1.2 ? 'Đặt hàng' : '');
-    return { name, total, status, min: minStock };
+  const alerts = (monthly?.rows || []).map((r) => {
+    const total = Number(r.closing) || 0;
+    const minStock = Number(r.min_stock) || 0;
+    const status = total <= 0 ? 'Hết hàng' : (total <= minStock * 1.2 ? 'Đặt hàng' : '');
+    return { name: r.chemical_name, total, status, min: minStock };
   }).filter((a) => a.status).sort((a, b) => rank[a.status] - rank[b.status]);
 
   // Nhập / xuất trong ngày (ngày trên máy): nhập = lot có Ngày nhập hôm nay, xuất = lần xuất hôm nay.
@@ -100,7 +88,7 @@ export default function Home({ signal, user, goTab, goKho }) {
           <div className="hm-tiles">
             <button type="button" className="hm-tile" onClick={() => goTab('lots')}><Icon><path d="M12 5v14M5 12h14" /></Icon><b>Nhập kho</b><small>Thêm lot mới, nhập file Excel</small></button>
             <button type="button" className="hm-tile" onClick={() => goTab('export')}><Icon tone="orange"><path d="M5 12h14" /></Icon><b>Xuất kho</b><small>Trừ tồn theo FIFO</small></button>
-            <button type="button" className="hm-tile" onClick={() => goTab('inventory')}><Icon><rect x="3" y="3" width="7" height="7" rx="1" /><rect x="14" y="3" width="7" height="7" rx="1" /><rect x="3" y="14" width="7" height="7" rx="1" /><rect x="14" y="14" width="7" height="7" rx="1" /></Icon><b>Xem kho</b><small>{chemicals.length} hóa chất đang lưu kho</small></button>
+            <button type="button" className="hm-tile" onClick={() => goTab('inventory')}><Icon><rect x="3" y="3" width="7" height="7" rx="1" /><rect x="14" y="3" width="7" height="7" rx="1" /><rect x="3" y="14" width="7" height="7" rx="1" /><rect x="14" y="14" width="7" height="7" rx="1" /></Icon><b>Xem kho</b><small>{(monthly?.rows || []).length} hóa chất đang lưu kho</small></button>
           </div>
         </section>
 

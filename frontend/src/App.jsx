@@ -1,20 +1,20 @@
-import { useState, useEffect, useRef, Fragment } from 'react';
+import { useState, useEffect, useRef, Fragment, Suspense, lazy } from 'react';
 import './App.css';
 import './theme.css';
-import Chemicals from './components/Chemicals';
-import Suppliers from './components/Suppliers';
-import Lots from './components/Lots';
-import Inventory from './components/Inventory';
-import Archive from './components/Archive';
-import Export from './components/Export';
 import Home from './components/Home';
 import Auth from './components/Auth';
-import AdminApprovals from './components/AdminApprovals';
-import ActivityLog from './components/ActivityLog';
-import ImportExcel from './components/ImportExcel';
-import PlasticPage from './components/PlasticPage';
 import Notifications from './components/Notifications';
 import AccountSettings from './components/AccountSettings';
+const Chemicals = lazy(() => import('./components/Chemicals'));
+const Suppliers = lazy(() => import('./components/Suppliers'));
+const Lots = lazy(() => import('./components/Lots'));
+const Inventory = lazy(() => import('./components/Inventory'));
+const Archive = lazy(() => import('./components/Archive'));
+const Export = lazy(() => import('./components/Export'));
+const AdminApprovals = lazy(() => import('./components/AdminApprovals'));
+const ActivityLog = lazy(() => import('./components/ActivityLog'));
+const ImportExcel = lazy(() => import('./components/ImportExcel'));
+const PlasticPage = lazy(() => import('./components/PlasticPage'));
 import { maskEmail } from './utils';
 import './components/loading.css';
 import socket from './socket';
@@ -219,6 +219,7 @@ useEffect(() => {
         ))}
       </div>
       <div className="card" ref={cardRef} onScroll={(e) => { if (tabRef.current === 'home') homeScrollRef.current = e.currentTarget.scrollTop; }}>
+        <Suspense fallback={<div style={{ padding: 24, textAlign: 'center' }}>Đang tải...</div>}>
         {tab === 'home' && <Home signal={signal} user={user} goTab={setTab} goKho={goKho} />}
         {tab === 'chemicals' && <Chemicals signal={signal} user={user} />}
         {tab === 'suppliers' && <Suppliers signal={signal} user={user} />}
@@ -235,8 +236,7 @@ useEffect(() => {
         {tab === 'plastic-stock' && <PlasticPage section="stock" signal={signal} user={user} />}
         {tab === 'plastic-weekly' && <PlasticPage section="weekly" signal={signal} user={user} />}
         {tab === 'plastic-archive' && <PlasticPage section="archive" signal={signal} user={user} />}
-
-
+        </Suspense>
       </div>
       {settingsOpen && <AccountSettings user={user} onClose={() => setSettingsOpen(false)} />}
     </div>
