@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import api from '../api';
 import Pagination from './Pagination';
 import ConfirmModal from './ConfirmModal';
+import DayWall from './DayWall';
 import './Lots.css';
 
 // So sánh không phân biệt dấu và hoa thường (giống ô chọn ở form nhập lot)
@@ -86,17 +87,16 @@ export default function Export({ signal }) {
   const [note, setNote] = useState('');
   const [exportDate, setExportDate] = useState('');
   const [message, setMessage] = useState('');
-  const [search, setSearch] = useState('');
-  const [monthFilter, setMonthFilter] = useState('');
   const [dayFilter, setDayFilter] = useState('');
-  const [page, setPage] = useState(1);
   const [editing, setEditing] = useState(null);
   const [confirm, setConfirm] = useState(null);
+  const [periods, setPeriods] = useState([]);
 
   const load = async () => {
     try {
-      const [c, i, e] = await Promise.all([api.get('/chemicals'), api.get('/inventory'), api.get('/lots/exports')]);
+      const [c, i, e, p] = await Promise.all([api.get('/chemicals'), api.get('/inventory'), api.get('/lots/exports'), api.get('/monthly/periods').catch(() => ({ data: [] }))]);
       setChemicals(c.data); setInventory(i.data); setExports(e.data);
+      setPeriods(p.data || []);
     } catch (err) {
       console.error(err);
     }
@@ -146,6 +146,8 @@ export default function Export({ signal }) {
     }
   };
 
+  const askDelete = (row) => setConfirm({ title: 'Xóa lần xuất này?', message: `Xóa lần xuất ${Number(row.quantity)} kg ${row.chemical_name} ngày ${fmtDate(row.export_date)}? Số lượng sẽ được hoàn lại vào kho.`, confirmText: 'Xóa', action: () => deleteOne(row) });
+
   const submit = async (e) => {
     e.preventDefault();
     if (!chemicalId) { setMessage('Vui lòng chọn hóa chất'); return; }
@@ -178,25 +180,30 @@ export default function Export({ signal }) {
   // Lọc theo tháng / theo ngày để dễ kiểm soát: chọn tháng thì chỉ hiện lần xuất trong tháng đó,
   // chọn ngày thì chỉ hiện đúng ngày đó (chọn ngày tự nhảy tháng về đúng tháng của ngày đó,
   // đổi tháng khác tháng của ngày đang chọn thì tự bỏ ngày).
-  const monthLabel = (m) => {
-    const [y, mo] = m.split('-');
-    return `Tháng ${Number(mo)}/${y}`;
-  };
-  const months = [...new Set(exports.map((x) => String(x.export_date).slice(0, 10).slice(0, 7)))].filter((m) => /^\d{4}-\d{2}$/.test(m)).sort().reverse();
-  const q = normalize(search);
-  const filtered = exports.filter((x) => {
-    if (q && !normalize(x.chemical_name).includes(q)) return false;
+  // Tường tháng = kỳ đang mở ở Kho (chốt tháng xong thì tường nhảy sang tháng tiếp theo);
+  // chưa có kỳ mở thì lấy tháng dương lịch hiện tại
+  const now = new Date();
+  const calendarMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  const wallMonth = (periods.find((p) => p.status === 'open') || {}).period || calendarMonth;
+  // Tháng đã chốt thì sang tab Lưu trữ xuất nhập, không hiện ở bảng chính nữa
+  const closedMonths = new Set(periods.filter((p) => p.status === 'closed').map((p) => p.period));
+  const activeExports = exports.filter((x) => !closedMonths.has(String(x.export_date).slice(0, 10).slice(0, 7)));
+  // Xuất ngày nào rơi vào ô ngày đó trên tường
+  const wallEntries = {};
+  activeExports.forEach((x) => {
     const d = String(x.export_date).slice(0, 10);
-    if (monthFilter && d.slice(0, 7) !== monthFilter) return false;
-    if (dayFilter && d !== dayFilter) return false;
-    return true;
+    if (!d || d.slice(0, 7) !== wallMonth) return;
+    (wallEntries[d] = wallEntries[d] || []).push({ label: x.chemical_name, qty: Number(x.quantity) || 0 });
   });
-  const filterActive = !!(monthFilter || dayFilter);
-  const totalQty = filtered.reduce((sum, x) => sum + (Number(x.quantity) || 0), 0);
-  const pageSize = 10;
-  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
-  const safePage = Math.min(page, totalPages);
-  const pageItems = filtered.slice((safePage - 1) * pageSize, safePage * pageSize);
+  // Bấm ô ngày có xuất thì hiện bảng nổi của ngày đó; ô trống thì không chọn
+  const pickWallDay = (d) => {
+    if (!d) { setDayFilter(''); return; }
+    const has = activeExports.some((x) => String(x.export_date).slice(0, 10) === d);
+    setDayFilter(has ? d : '');
+  };
+  // Du lieu cua ngay dang bam tren tuong, de hien bang noi
+  const dayRows = dayFilter ? activeExports.filter((x) => String(x.export_date).slice(0, 10) === dayFilter) : [];
+  const dayTotal = dayRows.reduce((sum, x) => sum + (Number(x.quantity) || 0), 0);
 
   return (
     <>
@@ -214,31 +221,28 @@ export default function Export({ signal }) {
       {overStock && <p className="msg-error">Số lượng xuất vượt quá tồn kho!</p>}
       {message && <p>{message}</p>}
 
-      <h3>Danh sách xuất kho</h3>
-      <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start', flexWrap: 'wrap' }}>
-        <input placeholder="Tìm hóa chất..." value={search} onChange={(e) => { setSearch(e.target.value); setPage(1); }} className="search-box" />
-        <select value={monthFilter} onChange={(e) => { const v = e.target.value; setMonthFilter(v); if (dayFilter && v && dayFilter.slice(0, 7) !== v) setDayFilter(''); setPage(1); }} style={{ padding: '7px 10px', border: '1px solid #cbd5e1', borderRadius: 8, background: '#fff' }} title="Lọc theo tháng">
-          <option value="">Tất cả các tháng</option>
-          {months.map((m) => <option key={m} value={m}>{monthLabel(m)}</option>)}
-        </select>
-        <input type="date" value={dayFilter} onChange={(e) => { const v = e.target.value; setDayFilter(v); if (v) setMonthFilter(v.slice(0, 7)); setPage(1); }} title="Lọc theo ngày" style={{ padding: '7px 10px', border: '1px solid #cbd5e1', borderRadius: 8 }} />
-        {filterActive && <button type="button" className="btn-secondary" onClick={() => { setMonthFilter(''); setDayFilter(''); setPage(1); }}>Xóa lọc</button>}
-      </div>
-      {filterActive && <p className="page-note">Đang lọc: {monthFilter ? monthLabel(monthFilter) : ''}{monthFilter && dayFilter ? ' — ' : ''}{dayFilter ? `ngày ${fmtDate(dayFilter)}` : ''} | Tổng: {filtered.length} lần xuất, {totalQty} kg</p>}
-      <table>
-        <thead>
-          <tr><th>Ngày xuất</th><th>Hóa chất</th><th>Số lượng (kg)</th><th>Ghi chú</th><th>Thao tác</th></tr>
-        </thead>
-        <tbody>
-          {pageItems.map((x) => (
-            <tr key={`${x.export_date}-${x.chemical_name}-${x.note}`}>
-              <td>{fmtDate(x.export_date)}</td><td>{x.chemical_name}</td><td>{Number(x.quantity)}</td><td>{x.note}</td>
-              <td><button onClick={() => startEdit(x)}>Sửa</button>{' '}<button onClick={() => setConfirm({ title: 'Xóa lần xuất này?', message: `Xóa lần xuất ${Number(x.quantity)} kg ${x.chemical_name} ngày ${fmtDate(x.export_date)}? Số lượng sẽ được hoàn lại vào kho.`, confirmText: 'Xóa', action: () => deleteOne(x) })}>Xóa</button></td>
-            </tr>
-          ))}
-          {pageItems.length === 0 && <tr><td colSpan={5}>{filterActive ? 'Không có lần xuất nào khớp bộ lọc' : 'Chưa có lần xuất nào'}</td></tr>}
-        </tbody>
-      </table>
+      <DayWall month={wallMonth} entries={wallEntries} selectedDay={dayFilter} onSelectDay={pickWallDay} />
+      {dayFilter && dayRows.length > 0 && (
+        <div onClick={() => setDayFilter('')} style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 16 }}>
+          <div onClick={(e) => e.stopPropagation()} style={{ background: '#fff', borderRadius: 16, padding: 20, width: '100%', maxWidth: 640, maxHeight: '80vh', overflow: 'auto' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+              <h3 style={{ margin: 0 }}>Xuất kho ngày {fmtDate(dayFilter)} ({dayRows.length} lần, {dayTotal} kg)</h3>
+              <button type="button" onClick={() => setDayFilter('')}>Đóng</button>
+            </div>
+            <table>
+              <thead><tr><th>Hóa chất</th><th>Số lượng (kg)</th><th>Ghi chú</th><th>Thao tác</th></tr></thead>
+              <tbody>
+                {dayRows.map((x) => (
+                  <tr key={`${x.export_date}-${x.chemical_name}-${x.note}`}>
+                    <td>{x.chemical_name}</td><td>{Number(x.quantity)}</td><td>{x.note}</td>
+                    <td><button onClick={() => { startEdit(x); setDayFilter(''); }}>Sửa</button><button onClick={() => { setDayFilter(''); askDelete(x); }} style={{ marginLeft: 6 }}>Xóa</button></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
 
       <ConfirmModal
         open={!!confirm}
@@ -248,9 +252,6 @@ export default function Export({ signal }) {
         onConfirm={() => { confirm.action(); setConfirm(null); }}
         onCancel={() => setConfirm(null)}
       />
-      </div>
-      <div className="pagination-bar">
-        <Pagination page={safePage} totalPages={totalPages} onChange={setPage} />
       </div>
     </>
   );

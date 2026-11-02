@@ -5,6 +5,7 @@ import Home from './components/Home';
 import Auth from './components/Auth';
 import Notifications from './components/Notifications';
 import AccountSettings from './components/AccountSettings';
+import ImportExportArchive from './components/ImportExportArchive';
 const Chemicals = lazy(() => import('./components/Chemicals'));
 const Suppliers = lazy(() => import('./components/Suppliers'));
 const Lots = lazy(() => import('./components/Lots'));
@@ -24,7 +25,7 @@ export default function App() {
   const [tab, setTab] = useState(() => {
     // Tab cũ 'trace' đã đổi thành 'export', tab cũ 'plastic' đã tách thành 6 tab riêng:
     // nếu trình duyệt còn nhớ tab cũ thì về trang chủ cho khỏi trắng trang
-    const valid = ['home', 'chemicals', 'suppliers', 'lots', 'inventory', 'archive', 'export', 'import', 'approvals', 'audit', 'plastic-detail', 'plastic-summary', 'plastic-monthend', 'plastic-stock', 'plastic-weekly', 'plastic-archive'];
+    const valid = ['home', 'chemicals', 'suppliers', 'lots', 'inventory', 'archive', 'archive-import-export', 'export', 'import', 'approvals', 'audit', 'plastic-detail', 'plastic-summary', 'plastic-monthend', 'plastic-stock', 'plastic-weekly', 'plastic-archive'];
     // Phân biệt F5 với đóng tab rồi mở lại: sessionStorage còn khi F5, mất khi đóng tab mở tab mới
     const isReload = sessionStorage.getItem('tabAlive') === '1';
     sessionStorage.setItem('tabAlive', '1');
@@ -117,6 +118,7 @@ useEffect(() => {
     ['lots', 'Mua/nhập'],
     ['inventory', 'Kho'],
     ['archive', 'Lưu trữ kho'],
+    ['archive-import-export', 'Lưu trữ xuất nhập'],
     ['export', 'Xuất kho'],
   ];
   tabs.push(['plastic-detail', 'Báo cáo nhựa']);
@@ -134,7 +136,7 @@ useEffect(() => {
     { title: null, keys: ['home'] },
     { title: 'Vận hành kho hằng ngày', keys: ['lots', 'export', 'inventory'] },
     { title: 'Danh mục & nhập liệu', keys: ['chemicals', 'suppliers', 'import'] },
-    { title: 'Theo dõi & quản trị', keys: ['archive', 'audit', 'approvals'] },
+    { title: 'Theo dõi & quản trị', keys: ['archive', 'archive-import-export', 'audit', 'approvals'] },
     { title: 'Báo cáo nhựa', keys: ['plastic-detail', 'plastic-summary', 'plastic-monthend', 'plastic-stock', 'plastic-weekly', 'plastic-archive'] },
   ];
 
@@ -226,6 +228,7 @@ useEffect(() => {
         {tab === 'lots' && <Lots signal={signal} />}
         {tab === 'inventory' && <Inventory signal={signal} user={user} highlightChemical={khoHighlight} onHighlightDone={() => setKhoHighlight(null)} />}
         {tab === 'archive' && <Archive signal={signal} />}
+        {tab === 'archive-import-export' && <ImportExportArchive signal={signal} />}
         {tab === 'export' && <Export signal={signal} />}
         {tab === 'import' && <ImportExcel />}
         {tab === 'approvals' && <AdminApprovals signal={signal} user={user} />}

@@ -107,6 +107,7 @@ export default function Home({ signal, user, goTab, goKho }) {
           <h3>Theo dõi &amp; quản trị</h3>
           <div className="hm-tiles">
             <button type="button" className="hm-tile" onClick={() => goTab('archive')}><Icon><path d="M12 20V10" /><path d="M18 20V4" /><path d="M6 20v-6" /></Icon><b>Lưu trữ kho</b><small>Xuất PDF tồn kho tháng</small></button>
+            <button type="button" className="hm-tile" onClick={() => goTab('archive-import-export')}><Icon><path d="M12 20V10" /><path d="M18 20V4" /><path d="M6 20v-6" /></Icon><b>Lưu trữ xuất nhập</b><small>Nhập, xuất các tháng đã chốt</small></button>
             {isAdmin && (
               <button type="button" className="hm-tile" onClick={() => goTab('audit')}><Icon><circle cx="12" cy="12" r="10" /><path d="M12 6v6l4 2" /></Icon><b>Lịch sử hoạt động</b><small>Xem ai đã làm gì</small></button>
             )}

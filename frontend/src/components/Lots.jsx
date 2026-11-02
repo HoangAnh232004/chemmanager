@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import api from '../api';
 import Pagination from './Pagination';
 import ConfirmModal from './ConfirmModal';
+import DayWall from './DayWall';
 import './Lots.css';
 
 // So sánh không phân biệt dấu và hoa thường: gõ "hoa chat" vẫn khớp "Hóa chất"
@@ -86,17 +87,16 @@ export default function Lots({ signal }) {
   const [suppliers, setSuppliers] = useState([]);
   const [form, setForm] = useState(EMPTY_FORM);
   const [message, setMessage] = useState('');
-  const [page, setPage] = useState(1);
-  const [search, setSearch] = useState('');
-  const [monthFilter, setMonthFilter] = useState('');
   const [dayFilter, setDayFilter] = useState('');
   const [editingId, setEditingId] = useState(null);
   const [confirm, setConfirm] = useState(null);
+  const [periods, setPeriods] = useState([]);
 
   const load = async () => {
     try {
-      const [l, c, s] = await Promise.all([api.get('/lots'), api.get('/chemicals'), api.get('/suppliers')]);
+      const [l, c, s, p] = await Promise.all([api.get('/lots'), api.get('/chemicals'), api.get('/suppliers'), api.get('/monthly/periods').catch(() => ({ data: [] }))]);
       setLots(l.data); setChemicals(c.data); setSuppliers(s.data);
+      setPeriods(p.data || []);
       return l.data;
     } catch (err) {
       console.error(err);
@@ -111,32 +111,34 @@ export default function Lots({ signal }) {
   // Tab Mua/nhập chỉ hiện lot nhập tay; lot từ file Excel (source = 'excel') thì ẩn khỏi đây
   // (vẫn hiện ở tab Kho, QC và Truy xuất). Lot cũ chưa có source thì coi như nhập tay.
   const manualLots = lots.filter((l) => l.source !== 'excel');
+  // Tường tháng = kỳ đang mở ở Kho (chốt tháng xong thì tường nhảy sang tháng tiếp theo);
+  // chưa có kỳ mở thì lấy tháng dương lịch hiện tại
+  const now = new Date();
+  const calendarMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  const wallMonth = (periods.find((p) => p.status === 'open') || {}).period || calendarMonth;
+  // Tháng đã chốt thì sang tab Lưu trữ xuất nhập, không hiện ở bảng chính nữa
+  const closedMonths = new Set(periods.filter((p) => p.status === 'closed').map((p) => p.period));
+  const activeLots = manualLots.filter((l) => !closedMonths.has(l.received_date ? String(l.received_date).slice(0, 10).slice(0, 7) : ''));
+  // Nhập ngày nào rơi vào ô ngày đó trên tường
+  const wallEntries = {};
+  activeLots.forEach((l) => {
+    const d = l.received_date ? String(l.received_date).slice(0, 10) : '';
+    if (!d || d.slice(0, 7) !== wallMonth) return;
+    (wallEntries[d] = wallEntries[d] || []).push({ label: l.chemical_name, qty: Number(l.quantity) || 0 });
+  });
+  // Bấm ô ngày có nhập thì hiện bảng nổi của ngày đó; ô trống thì không chọn
+  const pickWallDay = (d) => {
+    if (!d) { setDayFilter(''); return; }
+    const has = activeLots.some((l) => l.received_date && String(l.received_date).slice(0, 10) === d);
+    setDayFilter(has ? d : '');
+  };
   // Lọc theo tháng / theo ngày giống tab Xuất kho: chọn tháng thì chỉ hiện lot nhập trong tháng đó,
   // chọn ngày thì chỉ hiện đúng ngày đó (chọn ngày tự nhảy tháng về đúng tháng của ngày đó,
   // đổi tháng khác tháng của ngày đang chọn thì tự bỏ ngày). Lot không có ngày nhập thì không
   // gán được tháng/ngày nên khi đang lọc tháng/ngày sẽ tạm ẩn khỏi danh sách chi tiết.
-  const monthLabel = (m) => {
-    const [y, mo] = m.split('-');
-    return `Tháng ${Number(mo)}/${y}`;
-  };
-  const months = [...new Set(manualLots.map((l) => l.received_date ? String(l.received_date).slice(0, 10).slice(0, 7) : ''))].filter((m) => /^\d{4}-\d{2}$/.test(m)).sort().reverse();
-  const q = normalize(search);
-  const filtered = manualLots.filter((l) => {
-    if (q && !(normalize(l.lot_code).includes(q) || normalize(l.chemical_name).includes(q) || normalize(l.supplier_name).includes(q))) return false;
-    const d = l.received_date ? String(l.received_date).slice(0, 10) : '';
-    if (monthFilter && d.slice(0, 7) !== monthFilter) return false;
-    if (dayFilter && d !== dayFilter) return false;
-    return true;
-  });
-  const filterActive = !!(monthFilter || dayFilter);
-  const totalQty = filtered.reduce((sum, l) => sum + (Number(l.quantity) || 0), 0);
-  // Phân trang: mỗi trang 10 dòng
-  const pageSize = 10;
-  // Xếp từ cũ đến mới để món mới thêm luôn nằm cuối danh sách, STT tăng dần
-  const sorted = [...filtered].sort((a, b) => a.id - b.id);
-  const totalPages = Math.max(1, Math.ceil(sorted.length / pageSize));
-  const safePage = Math.min(page, totalPages);
-  const pageItems = sorted.slice((safePage - 1) * pageSize, safePage * pageSize);
+  // Du lieu cua ngay dang bam tren tuong, de hien bang noi
+  const dayRows = dayFilter ? activeLots.filter((l) => l.received_date && String(l.received_date).slice(0, 10) === dayFilter).sort((x, y) => x.id - y.id) : [];
+  const dayTotal = dayRows.reduce((sum, l) => sum + (Number(l.quantity) || 0), 0);
 
   const submit = async (e) => {
     e.preventDefault();
@@ -153,9 +155,7 @@ export default function Lots({ signal }) {
         await api.post('/lots', form);
         setForm(EMPTY_FORM);
         setMessage('Đã nhập kho');
-        const data = await load();
-        const manualCount = data.filter((l) => l.source !== 'excel').length;
-        setPage(Math.max(1, Math.ceil(manualCount / pageSize))); // nhập xong nhảy tới trang cuối để thấy lot mới
+        load();
       }
     } catch (err) {
       setMessage(err.response?.data?.message || (editingId ? 'Sửa lot thất bại' : 'Nhập kho thất bại'));
@@ -194,6 +194,8 @@ export default function Lots({ signal }) {
     }
   };
 
+  const askDelete = (l) => setConfirm({ title: 'Xóa lot này?', message: 'Hành động này không khôi phục được.', confirmText: 'Xóa', action: () => deleteOne(l.id) });
+
   return (
     <>
       <div className="tab-scroll">
@@ -207,29 +209,29 @@ export default function Lots({ signal }) {
         {editingId && <button type="button" className="btn-secondary" onClick={cancelEdit}>Hủy</button>}
       </form>
       {message && <p>{message}</p>}
-      <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start', flexWrap: 'wrap' }}>
-        <input placeholder="Tìm theo mã lot, tên hóa chất hoặc NCC..." value={search} onChange={(e) => { setSearch(e.target.value); setPage(1); }} className="search-box" />
-        <select value={monthFilter} onChange={(e) => { const v = e.target.value; setMonthFilter(v); if (dayFilter && v && dayFilter.slice(0, 7) !== v) setDayFilter(''); setPage(1); }} style={{ padding: '7px 10px', border: '1px solid #cbd5e1', borderRadius: 8, background: '#fff' }} title="Lọc theo tháng">
-          <option value="">Tất cả các tháng</option>
-          {months.map((m) => <option key={m} value={m}>{monthLabel(m)}</option>)}
-        </select>
-        <input type="date" value={dayFilter} onChange={(e) => { const v = e.target.value; setDayFilter(v); if (v) setMonthFilter(v.slice(0, 7)); setPage(1); }} title="Lọc theo ngày" style={{ padding: '7px 10px', border: '1px solid #cbd5e1', borderRadius: 8 }} />
-        {filterActive && <button type="button" className="btn-secondary" onClick={() => { setMonthFilter(''); setDayFilter(''); setPage(1); }}>Xóa lọc</button>}
-      </div>
-      {filterActive && <p className="page-note">Đang lọc: {monthFilter ? monthLabel(monthFilter) : ''}{monthFilter && dayFilter ? ' — ' : ''}{dayFilter ? `ngày ${fmtDate(dayFilter)}` : ''} | Tổng: {filtered.length} lot, {totalQty} kg</p>}
-      <table>
-        <thead><tr><th>STT</th><th>Hóa chất</th><th>NCC</th><th>SL</th><th>Ngày nhập</th><th></th></tr></thead>
-        <tbody>
-          {pageItems.map((l, idx) => (
-            <tr key={l.id}>
-              <td>{(safePage - 1) * pageSize + idx + 1}</td><td>{l.chemical_name}</td><td>{l.supplier_name}</td>
-              <td>{Number(l.quantity)} {l.unit}</td><td>{fmtDate(l.received_date)}</td>
-              <td><button onClick={() => startEdit(l)}>Sửa</button>{' '}<button onClick={() => setConfirm({ title: 'Xóa lot này?', message: 'Hành động này không khôi phục được.', confirmText: 'Xóa', action: () => deleteOne(l.id) })}>Xóa</button></td>
-            </tr>
-          ))}
-          {pageItems.length === 0 && <tr><td colSpan={6}>{filterActive ? 'Không có lot nào khớp bộ lọc' : 'Chưa có lot nào'}</td></tr>}
-        </tbody>
-      </table>
+      <DayWall month={wallMonth} entries={wallEntries} selectedDay={dayFilter} onSelectDay={pickWallDay} />
+      {dayFilter && dayRows.length > 0 && (
+        <div onClick={() => setDayFilter('')} style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 16 }}>
+          <div onClick={(e) => e.stopPropagation()} style={{ background: '#fff', borderRadius: 16, padding: 20, width: '100%', maxWidth: 640, maxHeight: '80vh', overflow: 'auto' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+              <h3 style={{ margin: 0 }}>Nhập kho ngày {fmtDate(dayFilter)} ({dayRows.length} lot, {dayTotal} kg)</h3>
+              <button type="button" onClick={() => setDayFilter('')}>Đóng</button>
+            </div>
+            <table>
+              <thead><tr><th>STT</th><th>Hóa chất</th><th>NCC</th><th>SL</th><th>Thao tác</th></tr></thead>
+              <tbody>
+                {dayRows.map((l, idx) => (
+                  <tr key={l.id}>
+                    <td>{idx + 1}</td><td>{l.chemical_name}</td><td>{l.supplier_name}</td>
+                    <td>{Number(l.quantity)} {l.unit}</td>
+                    <td><button onClick={() => { startEdit(l); setDayFilter(''); }}>Sửa</button><button onClick={() => { setDayFilter(''); askDelete(l); }} style={{ marginLeft: 6 }}>Xóa</button></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
 
       <ConfirmModal
         open={!!confirm}
@@ -239,9 +241,6 @@ export default function Lots({ signal }) {
         onConfirm={() => { confirm.action(); setConfirm(null); }}
         onCancel={() => setConfirm(null)}
       />
-      </div>
-      <div className="pagination-bar">
-        <Pagination page={safePage} totalPages={totalPages} onChange={setPage} />
       </div>
     </>
   );
