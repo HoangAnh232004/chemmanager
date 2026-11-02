@@ -223,8 +223,8 @@ export default function Export({ signal }) {
 
       <DayWall month={wallMonth} entries={wallEntries} selectedDay={dayFilter} onSelectDay={pickWallDay} />
       {dayFilter && dayRows.length > 0 && (
-        <div onClick={() => setDayFilter('')} style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 16 }}>
-          <div onClick={(e) => e.stopPropagation()} style={{ background: '#fff', borderRadius: 16, padding: 20, width: '100%', maxWidth: 640, maxHeight: '80vh', overflow: 'auto' }}>
+        <div onClick={() => setDayFilter('')} style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.45)', display: 'flex', overflowY: 'auto', zIndex: 1000, padding: 16 }}>
+          <div onClick={(e) => e.stopPropagation()} style={{ margin: 'auto', background: '#fff', borderRadius: 16, padding: 20, width: '100%', maxWidth: 640, maxHeight: 'calc(100vh - 32px)', overflow: 'auto' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
               <h3 style={{ margin: 0 }}>Xuất kho ngày {fmtDate(dayFilter)} ({dayRows.length} lần, {dayTotal} kg)</h3>
               <button type="button" onClick={() => setDayFilter('')}>Đóng</button>
@@ -235,7 +235,7 @@ export default function Export({ signal }) {
                 {dayRows.map((x) => (
                   <tr key={`${x.export_date}-${x.chemical_name}-${x.note}`}>
                     <td>{x.chemical_name}</td><td>{Number(x.quantity)}</td><td>{x.note}</td>
-                    <td><button onClick={() => { startEdit(x); setDayFilter(''); }}>Sửa</button><button onClick={() => { setDayFilter(''); askDelete(x); }} style={{ marginLeft: 6 }}>Xóa</button></td>
+                    <td style={{ whiteSpace: 'nowrap' }}><span style={{ display: 'inline-flex', gap: 6, alignItems: 'center' }}><button onClick={() => { startEdit(x); setDayFilter(''); }}>Sửa</button><button onClick={() => { setDayFilter(''); askDelete(x); }}>Xóa</button></span></td>
                   </tr>
                 ))}
               </tbody>
